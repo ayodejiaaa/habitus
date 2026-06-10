@@ -1,0 +1,102 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  CLIENT
+  ADMIN
+}
+
+enum RequestStage {
+  FOUNDATION
+  STRUCTURE
+  ROOFING
+  FINISHING
+  OTHER
+}
+
+enum RequestStatus {
+  SUBMITTED
+  IN_PROGRESS
+  REPORT_READY
+  COMPLETED
+}
+
+enum AssessmentStatus {
+  ON_TRACK
+  NEEDS_ATTENTION
+  ISSUE_DETECTED
+}
+
+enum RecommendationStatus {
+  PROCEED
+  PROCEED_WITH_CAUTION
+  PAUSE_FUNDING
+}
+
+enum AssetType {
+  PHOTO
+  VIDEO
+}
+
+model User {
+  id                String              @id @default(cuid())
+  name              String?
+  email             String              @unique
+  password          String?             // Hashed password for credentials provider
+  role              UserRole            @default(CLIENT)
+  emailVerified     DateTime?
+  image             String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  requests          InspectionRequest[]
+}
+
+model InspectionRequest {
+  id                  String             @id @default(cuid())
+  userId              String
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectName         String
+  propertyAddress     String
+  city                String
+  state               String
+  country             String
+  propertyType        String             // "Residential" | "Commercial" | "Other"
+  stage               RequestStage
+  siteContactName     String
+  siteContactPhone    String
+  notes               String?
+  specialInstructions String?
+  status              RequestStatus      @default(SUBMITTED)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  reports             InspectionReport[]
+}
+
+model InspectionReport {
+  id                String             @id @default(cuid())
+  requestId         String             @unique
+  request           InspectionRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  assessmentStatus  AssessmentStatus
+  executiveSummary  String
+  findings          String             // Stored as a newline-separated string
+  recommendation    RecommendationStatus
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  mediaAssets       MediaAsset[]
+}
+
+model MediaAsset {
+  id          String            @id @default(cuid())
+  reportId    String
+  report      InspectionReport  @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  type        AssetType
+  url         String
+  createdAt   DateTime          @default(now())
+}

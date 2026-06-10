@@ -1,0 +1,246 @@
+"use client";
+
+import React, { useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { InspectionReportSchema } from "@/lib/schemas";
+import { publishInspectionReport } from "@/lib/actions";
+import { Button } from "./ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
+import { FileText, Save, Info } from "lucide-react";
+
+interface RequestItem {
+  id: string;
+  projectName: string;
+  city: string;
+  country: string;
+}
+
+interface ReportBuilderFormProps {
+  requests: RequestItem[];
+}
+
+export default function ReportBuilderForm({ requests }: ReportBuilderFormProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Pre-select request from search param if available
+  const defaultRequestId = searchParams.get("request") || (requests[0]?.id ?? "");
+
+  const [photoUrls, setPhotoUrls] = useState("");
+  const [videoUrls, setVideoUrls] = useState("");
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(InspectionReportSchema),
+    defaultValues: {
+      requestId: defaultRequestId,
+      assessmentStatus: "ON_TRACK" as any,
+      executiveSummary: "",
+      findings: "",
+      recommendation: "PROCEED" as any,
+    },
+  });
+
+  const onSubmit = async (data: any) => {
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    // Parse photos and videos
+    const mediaAssets: any[] = [];
+    
+    photoUrls.split("\n").forEach((url) => {
+      const trimmed = url.trim();
+      if (trimmed.startsWith("http")) {
+        mediaAssets.push({ type: "PHOTO", url: trimmed });
+      }
+    });
+
+    videoUrls.split("\n").forEach((url) => {
+      const trimmed = url.trim();
+      if (trimmed.startsWith("http")) {
+        mediaAssets.push({ type: "VIDEO", url: trimmed });
+      }
+    });
+
+    const payload = {
+      ...data,
+      mediaAssets,
+    };
+
+    const res = await publishInspectionReport(payload);
+
+    setIsLoading(false);
+    if (res.error) {
+      setError(res.error);
+    } else {
+      setSuccess("Inspection report published successfully!");
+      reset();
+      setPhotoUrls("");
+      setVideoUrls("");
+      // Refresh to update available projects in the list
+      router.refresh();
+      // Redirect to requests after 1.5 seconds
+      setTimeout(() => {
+        router.push("/admin/requests");
+      }, 1500);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center space-x-3 pb-4 border-b border-gray-50 bg-brand-bg/50">
+        <div className="p-2 bg-primary/10 text-primary rounded-lg">
+          <FileText className="h-5 w-5" />
+        </div>
+        <div>
+          <CardTitle>Report Builder</CardTitle>
+          <p className="text-xs text-gray-400">Compile site findings, recommendations, and evidence.</p>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="pt-6">
+        {requests.length === 0 && !defaultRequestId ? (
+          <div className="flex items-center space-x-2 text-sm text-gray-400 bg-gray-50 p-4 rounded border">
+            <Info className="h-5 w-5" />
+            <span>All inspection requests currently have published reports.</span>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
+            {error && (
+              <div className="bg-red-50 text-red-700 text-xs font-semibold p-3 rounded border border-red-200">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="bg-emerald-50 text-emerald-700 text-xs font-semibold p-3 rounded border border-emerald-200">
+                {success}
+              </div>
+            )}
+
+            {/* Select Request */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold uppercase text-gray-500">Target Project</label>
+              <select
+                disabled={isLoading}
+                className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                {...register("requestId")}
+              >
+                {requests.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.projectName} ({r.city}, {r.country})
+                  </option>
+                ))}
+                {/* Fallback if a specific preselected request is not in the un-reported list */}
+                {defaultRequestId && !requests.find((r) => r.id === defaultRequestId) && (
+                  <option value={defaultRequestId}>Preselected Request ID: {defaultRequestId}</option>
+                )}
+              </select>
+            </div>
+
+            {/* Assessment & Recommendation */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold uppercase text-gray-500">Assessment Status</label>
+                <select
+                  disabled={isLoading}
+                  className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                  {...register("assessmentStatus")}
+                >
+                  <option value="ON_TRACK">On Track</option>
+                  <option value="NEEDS_ATTENTION">Needs Attention</option>
+                  <option value="ISSUE_DETECTED">Issue Detected</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold uppercase text-gray-500">Action Recommendation</label>
+                <select
+                  disabled={isLoading}
+                  className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                  {...register("recommendation")}
+                >
+                  <option value="PROCEED">Proceed</option>
+                  <option value="PROCEED_WITH_CAUTION">Proceed with caution</option>
+                  <option value="PAUSE_FUNDING">Pause further funding</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Executive Summary */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold uppercase text-gray-500">Executive Summary</label>
+              <textarea
+                rows={5}
+                disabled={isLoading}
+                placeholder="Provide a written summary of the overall progress and findings..."
+                className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none disabled:opacity-50"
+                {...register("executiveSummary")}
+              />
+              {errors.executiveSummary && (
+                <p className="text-red-500 text-xs mt-0.5">{errors.executiveSummary.message as string}</p>
+              )}
+            </div>
+
+            {/* Key Findings */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold uppercase text-gray-500">Key Findings (one observation per line)</label>
+              <textarea
+                rows={5}
+                disabled={isLoading}
+                placeholder="e.g. Blockwork completed on ground floor.&#10;Substandard cement mixture detected in columns.&#10;Roof support timbers show structural integrity."
+                className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none disabled:opacity-50"
+                {...register("findings")}
+              />
+              {errors.findings && (
+                <p className="text-red-500 text-xs mt-0.5">{errors.findings.message as string}</p>
+              )}
+            </div>
+
+            {/* Photo Evidence Paste */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold uppercase text-gray-500">Photo Evidence URLs (one URL per line)</label>
+              <textarea
+                rows={3}
+                disabled={isLoading}
+                placeholder="e.g. https://images.unsplash.com/photo-1541888946425-d81bb19240f5"
+                value={photoUrls}
+                onChange={(e) => setPhotoUrls(e.target.value)}
+                className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none disabled:opacity-50"
+              />
+              <p className="text-[10px] text-gray-400">Enter links to photos stored in cloud buckets or hosted online.</p>
+            </div>
+
+            {/* Video Evidence Paste */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold uppercase text-gray-500">Video Evidence URLs (one URL per line)</label>
+              <textarea
+                rows={3}
+                disabled={isLoading}
+                placeholder="e.g. https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                value={videoUrls}
+                onChange={(e) => setVideoUrls(e.target.value)}
+                className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none disabled:opacity-50"
+              />
+              <p className="text-[10px] text-gray-400">Supports YouTube, Vimeo, or direct video logs.</p>
+            </div>
+
+            <Button type="submit" disabled={isLoading} className="font-bold flex items-center gap-2">
+              <Save className="h-4 w-4" /> {isLoading ? "Publishing..." : "Publish Report"}
+            </Button>
+          </form>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

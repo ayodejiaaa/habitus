@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1F7A5A;
+  --color-primary-hover: #176046;
+  --color-secondary: #8B5E3C;
+  --color-secondary-hover: #724c30;
+  --color-brand-bg: #F7F5F2;
+  --color-charcoal: #2C2C2C;
+  --color-accent: #D4A017;
+  --color-accent-hover: #b58610;
+  
+  --color-ontrack: #10B981;
+  --color-needsattention: #F59E0B;
+  --color-issuedetected: #EF4444;
+  
+  --color-border: #e6e4e0;
+  --color-ring: #1F7A5A;
+  
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+:root {
+  --background: #F7F5F2;
+  --foreground: #2C2C2C;
+  --border: #e6e4e0;
+  --radius: 0.5rem;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  margin: 0;
+}
+
+/* Glassmorphism utility card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+}
+
+.glass-nav {
+  background: rgba(247, 245, 242, 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(44, 44, 44, 0.08);
+}
