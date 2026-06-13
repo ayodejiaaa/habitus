@@ -24,11 +24,11 @@ export default function RequestInspectionDialog() {
     defaultValues: {
       projectName: "",
       propertyAddress: "",
-      city: "",
-      state: "",
-      country: "",
-      propertyType: "Residential" as any,
-      stage: "FOUNDATION" as any,
+      city: "Lagos",
+      state: "Lagos",
+      country: "Nigeria",
+      propertyType: "" as any,
+      stage: "" as any,
       siteContactName: "",
       siteContactPhone: "",
       notes: "",
@@ -90,6 +90,17 @@ export default function RequestInspectionDialog() {
 
             {/* Form */}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              {/* Service Notice */}
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex items-start space-x-3">
+                <span className="text-accent text-lg leading-none">📍</span>
+                <div>
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-wide">Lagos, Nigeria Launch Notice</h4>
+                  <p className="text-xs text-gray-600 mt-1">
+                    We currently only verify properties located in Lagos, Nigeria. More cities coming soon!
+                  </p>
+                </div>
+              </div>
+
               {error && (
                 <div className="bg-red-50 text-red-700 text-xs font-semibold p-3 rounded border border-red-200">
                   {error}
@@ -136,13 +147,13 @@ export default function RequestInspectionDialog() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold uppercase text-gray-500">City</label>
-                    <input
-                      type="text"
-                      placeholder="Lekki"
+                    <select
                       disabled={isLoading}
                       className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
                       {...register("city")}
-                    />
+                    >
+                      <option value="Lagos">Lagos</option>
+                    </select>
                     {errors.city && (
                       <p className="text-red-500 text-xs mt-0.5">{errors.city.message as string}</p>
                     )}
@@ -152,8 +163,9 @@ export default function RequestInspectionDialog() {
                     <input
                       type="text"
                       placeholder="Lagos"
+                      readOnly
                       disabled={isLoading}
-                      className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                      className="w-full bg-gray-50 border border-border rounded-md px-3 py-2 text-sm focus:outline-none disabled:opacity-50 cursor-not-allowed"
                       {...register("state")}
                     />
                     {errors.state && (
@@ -165,8 +177,9 @@ export default function RequestInspectionDialog() {
                     <input
                       type="text"
                       placeholder="Nigeria"
+                      readOnly
                       disabled={isLoading}
-                      className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                      className="w-full bg-gray-50 border border-border rounded-md px-3 py-2 text-sm focus:outline-none disabled:opacity-50 cursor-not-allowed"
                       {...register("country")}
                     />
                     {errors.country && (
@@ -188,10 +201,14 @@ export default function RequestInspectionDialog() {
                       className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
                       {...register("propertyType")}
                     >
+                      <option value="">Select Property Type</option>
                       <option value="Residential">Residential</option>
                       <option value="Commercial">Commercial</option>
                       <option value="Other">Other</option>
                     </select>
+                    {errors.propertyType && (
+                      <p className="text-red-500 text-xs mt-0.5">{errors.propertyType.message as string}</p>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-bold uppercase text-gray-500">Current Stage</label>
@@ -200,12 +217,16 @@ export default function RequestInspectionDialog() {
                       className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
                       {...register("stage")}
                     >
+                      <option value="">Select Current Stage</option>
                       <option value="FOUNDATION">Foundation</option>
                       <option value="STRUCTURE">Structure</option>
                       <option value="ROOFING">Roofing</option>
                       <option value="FINISHING">Finishing</option>
                       <option value="OTHER">Other</option>
                     </select>
+                    {errors.stage && (
+                      <p className="text-red-500 text-xs mt-0.5">{errors.stage.message as string}</p>
+                    )}
                   </div>
                 </div>
               </div>

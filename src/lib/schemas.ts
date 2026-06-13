@@ -33,8 +33,12 @@ export const InspectionRequestSchema = z.object({
   city: z.string().min(2, "City is required"),
   state: z.string().min(2, "State is required"),
   country: z.string().min(2, "Country is required"),
-  propertyType: z.enum(["Residential", "Commercial", "Other"]),
-  stage: z.enum(["FOUNDATION", "STRUCTURE", "ROOFING", "FINISHING", "OTHER"]),
+  propertyType: z.enum(["Residential", "Commercial", "Other"], {
+    message: "Please select a property type",
+  }),
+  stage: z.enum(["FOUNDATION", "STRUCTURE", "ROOFING", "FINISHING", "OTHER"], {
+    message: "Please select the current stage",
+  }),
   siteContactName: z.string().min(2, "Site Contact Name is required"),
   siteContactPhone: z.string().min(5, "Site Contact Phone is required"),
   notes: z.string().optional(),
