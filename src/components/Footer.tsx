@@ -7,11 +7,24 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Logo & Description */}
           <div className="flex flex-col space-y-3">
-            <div className="flex items-center space-x-2">
-              <span className="text-xl font-bold tracking-tight text-primary">Habitus</span>
-              <span className="h-2 w-2 rounded-full bg-accent"></span>
+            <div className="space-y-0.5">
+              <div className="flex items-center space-x-2">
+                <span className="text-xl font-black tracking-tight text-primary">Habitus</span>
+                <span className="h-2 w-2 rounded-full bg-accent"></span>
+              </div>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                A Product of{" "}
+                <a
+                  href="https://akowe.ng"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-primary underline decoration-dotted transition-colors hover:decoration-solid"
+                >
+                  Akowe Inc.
+                </a>
+              </p>
             </div>
-            <p className="text-sm text-gray-500 max-w-xs leading-relaxed">
+            <p className="text-xs text-gray-500 max-w-xs leading-relaxed">
               Independent construction verification for Africans in the diaspora. Helping you verify and build with confidence back home.
             </p>
           </div>
@@ -46,9 +59,14 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 pt-8 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between text-xs text-gray-400">
-          <p>&copy; {new Date().getFullYear()} Habitus. All rights reserved.</p>
-          <div className="flex space-x-4 mt-4 md:mt-0">
+        <div className="mt-8 pt-8 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between text-xs text-gray-400 gap-4">
+          <div className="space-y-1 text-center md:text-left">
+            <p>&copy; {new Date().getFullYear()} Habitus. All rights reserved.</p>
+            <p className="text-[10px] text-gray-400">
+              Habitus by <a href="https://akowe.ng" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors font-semibold">Akowe Inc.</a> &mdash; <em>Building solutions that engender trust in people, places, and transactions.</em>
+            </p>
+          </div>
+          <div className="flex space-x-4 shrink-0">
             <Link href="/about" className="hover:text-primary transition-colors">About Us</Link>
             <Link href="/contact" className="hover:text-primary transition-colors">Contact Support</Link>
           </div>
