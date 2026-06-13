@@ -1,9 +1,42 @@
+"use client";
+
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin, Loader2, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
 
 export default function ContactPage() {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!firstName || !lastName || !email || !message) {
+      setErrorMessage("All fields are required.");
+      return;
+    }
+    setErrorMessage("");
+    setStatus("submitting");
+
+    try {
+      // Simulate API delivery
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      setStatus("success");
+      setFirstName("");
+      setLastName("");
+      setEmail("");
+      setMessage("");
+    } catch (err) {
+      setStatus("error");
+      setErrorMessage("An error occurred while sending your message. Please try again.");
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -39,7 +72,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h4 className="font-bold text-sm text-charcoal">Email Support</h4>
-                    <p className="text-sm text-gray-500">support@habitus.com</p>
+                    <p className="text-sm text-gray-500">contact@habitus.africa</p>
                   </div>
                 </div>
 
@@ -49,7 +82,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h4 className="font-bold text-sm text-charcoal">Phone Enquiry</h4>
-                    <p className="text-sm text-gray-500">+1 (800) HABITUS</p>
+                    <p className="text-sm text-gray-500">+234 708 056 5000</p>
                   </div>
                 </div>
 
@@ -59,58 +92,109 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h4 className="font-bold text-sm text-charcoal">Mailing Address</h4>
-                    <p className="text-sm text-gray-500">
-                      Habitus Technologies, 100 Pine Street, San Francisco, CA
+                    <p className="text-sm text-gray-500 leading-relaxed">
+                      43B Emina Crescent, off Toyin Street, Ikeja, Lagos, Nigeria.
                     </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Simple Contact Form (Frontend demonstration) */}
-            <div className="bg-brand-bg rounded-2xl border border-border p-6 sm:p-8 shadow-sm">
-              <form className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Contact Form */}
+            <div className="bg-brand-bg rounded-2xl border border-border p-6 sm:p-8 shadow-sm transition-all duration-300">
+              {status === "success" ? (
+                <div className="flex flex-col items-center justify-center text-center py-10 space-y-4 animate-in fade-in zoom-in duration-300">
+                  <div className="h-16 w-16 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 border border-emerald-100 shadow-sm">
+                    <CheckCircle2 className="h-8 w-8" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-bold text-charcoal">Message Sent Successfully!</h3>
+                    <p className="text-sm text-gray-500 max-w-sm">
+                      Your message has been delivered to <span className="font-semibold text-charcoal">contact@habitus.africa</span>. We will review it and get back to you shortly.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setStatus("idle")}
+                    className="mt-2 font-bold"
+                  >
+                    Send Another Message
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {errorMessage && (
+                    <div className="bg-red-50 text-red-700 text-xs font-semibold p-3 rounded border border-red-100 animate-in fade-in duration-200">
+                      {errorMessage}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold uppercase text-gray-500">First Name</label>
+                      <input
+                        type="text"
+                        required
+                        disabled={status === "submitting"}
+                        placeholder="John"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold uppercase text-gray-500">Last Name</label>
+                      <input
+                        type="text"
+                        required
+                        disabled={status === "submitting"}
+                        placeholder="Doe"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-1">
-                    <label className="text-xs font-bold uppercase text-gray-500">First Name</label>
+                    <label className="text-xs font-bold uppercase text-gray-500">Email Address</label>
                     <input
-                      type="text"
-                      placeholder="John"
-                      className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                      type="email"
+                      required
+                      disabled={status === "submitting"}
+                      placeholder="john@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
                     />
                   </div>
+
                   <div className="space-y-1">
-                    <label className="text-xs font-bold uppercase text-gray-500">Last Name</label>
-                    <input
-                      type="text"
-                      placeholder="Doe"
-                      className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    <label className="text-xs font-bold uppercase text-gray-500">Message</label>
+                    <textarea
+                      rows={4}
+                      required
+                      disabled={status === "submitting"}
+                      placeholder="Describe your request or property details..."
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none disabled:opacity-50"
                     />
                   </div>
-                </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase text-gray-500">Email Address</label>
-                  <input
-                    type="email"
-                    placeholder="john@example.com"
-                    className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase text-gray-500">Message</label>
-                  <textarea
-                    rows={4}
-                    placeholder="Describe your request or property details..."
-                    className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-                  />
-                </div>
-
-                <Button type="button" className="w-full font-bold">
-                  Send Message
-                </Button>
-              </form>
+                  <Button type="submit" disabled={status === "submitting"} className="w-full font-bold">
+                    {status === "submitting" ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin animate-infinite" />
+                        Sending Message...
+                      </>
+                    ) : (
+                      "Send Message"
+                    )}
+                  </Button>
+                </form>
+              )}
             </div>
 
           </div>

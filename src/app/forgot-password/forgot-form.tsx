@@ -57,7 +57,7 @@ export default function ForgotForm() {
                 type="email"
                 required
                 disabled={isLoading}
-                placeholder="client@habitus.com"
+                placeholder="client@habitus.africa"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
