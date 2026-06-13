@@ -247,13 +247,9 @@ export default async function ReportDetailPage({ params }: PageProps) {
                 <div key={photo.id} className="relative rounded-lg overflow-hidden border border-border group bg-gray-50">
                   {/* Since url is a mock or external link, we use a standard HTML img */}
                   <img
-                    src={photo.url}
+                    src={photo.url.startsWith("http") ? photo.url : "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=500&q=80"}
                     alt="Construction site evidence"
                     className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-200"
-                    onError={(e) => {
-                      // Fallback image if url is mock
-                      e.currentTarget.src = "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=500&q=80";
-                    }}
                   />
                   <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white p-2 text-center text-[10px] font-bold">
                     Site Capture Log
