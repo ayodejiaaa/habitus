@@ -133,8 +133,72 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Inspector Showcase Section */}
+      <section className="py-20 bg-brand-bg border-t border-b border-border relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="lg:grid lg:grid-cols-12 lg:gap-12 items-center">
+            {/* Image (Left) */}
+            <div className="lg:col-span-5 relative rounded-2xl overflow-hidden shadow-2xl border border-border group bg-gray-50">
+              <img
+                src="/images/inspector_at_site.png"
+                alt="Certified Habitus Inspector conducting structural verification at a residential site in Lagos, Nigeria"
+                className="w-full h-auto object-cover group-hover:scale-[1.02] transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.6)_0%,rgba(0,0,0,0)_50%)]"></div>
+              <div className="absolute bottom-4 left-4 text-white">
+                <p className="text-xs font-bold text-accent uppercase tracking-wider">Lagos Site Verification</p>
+                <p className="text-sm font-semibold mt-0.5">Auditor: Habitus Field Inspector Team</p>
+              </div>
+            </div>
+
+            {/* Description (Right) */}
+            <div className="lg:col-span-7 mt-12 lg:mt-0 space-y-6">
+              <div className="inline-flex items-center space-x-2 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold">
+                <span>🛡️</span>
+                <span>Verified Local Auditing Professionals</span>
+              </div>
+              
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-charcoal leading-tight">
+                Our inspectors are <span className="text-primary">qualified, local, and completely independent.</span>
+              </h2>
+              
+              <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+                We recruit certified civil engineers and construction professionals in Lagos who have zero interest in your developer's sales sheets or contractor relationships. They inspect the structural concrete, wall integrity, roofing timbers, and finishing work.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
+                <div className="space-y-2">
+                  <h4 className="font-bold text-sm text-charcoal flex items-center gap-1.5">
+                    <span className="text-accent">📸</span> High-Res Evidence
+                  </h4>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Detailed photos of brickwork, foundations, concrete mixes, and drainage to verify material quality.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-bold text-sm text-charcoal flex items-center gap-1.5">
+                    <span className="text-accent">🎥</span> Uncut Video Logs
+                  </h4>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Walkthrough recordings of the site to show layout deviations, site cleanliness, and ongoing labor numbers.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <Link href="/pricing">
+                  <Button size="lg" className="font-bold">
+                    Order Site Verification (₦350k)
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* The Habitus Solution */}
-      <section className="py-20 bg-brand-bg">
+      <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="lg:grid lg:grid-cols-2 lg:gap-16 items-center">
             
