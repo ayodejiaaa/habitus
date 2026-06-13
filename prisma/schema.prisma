@@ -76,6 +76,7 @@ model InspectionRequest {
   notes               String?
   specialInstructions String?
   status              RequestStatus      @default(SUBMITTED)
+  paymentStatus       String             @default("PAID")
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
   reports             InspectionReport[]

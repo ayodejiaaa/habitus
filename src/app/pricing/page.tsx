@@ -43,9 +43,10 @@ export default function PricingPage() {
               <p className="text-emerald-100 text-sm">
                 Comprehensive site audit and verified evidence report.
               </p>
-              <div className="pt-4">
-                <span className="text-4xl font-black">$199</span>
-                <span className="text-emerald-200 text-sm"> / inspection</span>
+              <div className="pt-4 flex flex-col items-center">
+                <span className="text-4xl font-black">₦350,000</span>
+                <span className="text-emerald-100 text-sm font-semibold mt-1">($250 USD equivalent)</span>
+                <span className="text-emerald-200 text-xs mt-1">per inspection</span>
               </div>
             </div>
 

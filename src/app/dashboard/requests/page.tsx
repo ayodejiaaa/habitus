@@ -67,9 +67,14 @@ export default async function RequestsPage() {
                     <span>Submitted {new Date(req.createdAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</span>
                   </div>
                 </div>
-                <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${getStatusColor(req.status)}`}>
-                  {req.status}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-bold px-2.5 py-1 rounded-full">
+                    Paid (₦350k)
+                  </span>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${getStatusColor(req.status)}`}>
+                    {req.status}
+                  </span>
+                </div>
               </div>
 
               <CardContent className="space-y-4 text-sm">

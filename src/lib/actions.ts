@@ -81,6 +81,7 @@ export async function createInspectionRequest(values: any) {
         notes: data.notes || null,
         specialInstructions: data.specialInstructions || null,
         status: "SUBMITTED",
+        paymentStatus: values.paymentStatus || "PAID",
       },
     });
 

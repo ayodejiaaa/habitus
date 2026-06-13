@@ -49,6 +49,10 @@ export default async function AdminRequestsPage() {
                   <div className="flex items-center space-x-1.5 text-xs text-gray-400">
                     <Calendar className="h-3.5 w-3.5" />
                     <span>Requested {new Date(req.createdAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</span>
+                    <span className="mx-2 text-gray-300">|</span>
+                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      Paid (₦350k)
+                    </span>
                   </div>
                 </div>
 
