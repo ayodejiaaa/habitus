@@ -25,7 +25,14 @@ export default async function SettingsPage() {
         <p className="text-sm text-gray-500">Manage your profile details and update notification rules.</p>
       </div>
 
-      <SettingsForm initialUser={{ name: user.name, email: user.email }} />
+      <SettingsForm 
+        initialUser={{ 
+          name: user.name, 
+          email: user.email,
+          emailAuditReports: user.emailAuditReports,
+          statusChangeAlerts: user.statusChangeAlerts
+        }} 
+      />
     </div>
   );
 }

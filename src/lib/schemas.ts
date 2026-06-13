@@ -59,3 +59,8 @@ export const InspectionReportSchema = z.object({
     })
   ).optional(),
 });
+
+export const NotificationPreferencesSchema = z.object({
+  emailAuditReports: z.boolean(),
+  statusChangeAlerts: z.boolean(),
+});

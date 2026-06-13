@@ -9,7 +9,8 @@ import {
   UpdateProfileSchema, 
   ChangePasswordSchema, 
   InspectionRequestSchema, 
-  InspectionReportSchema 
+  InspectionReportSchema,
+  NotificationPreferencesSchema
 } from "./schemas";
 import { RequestStatus } from "@prisma/client";
 
@@ -268,4 +269,34 @@ export async function changePassword(values: any) {
  */
 export async function logoutUser() {
   await signOut({ redirectTo: "/" });
+}
+
+/**
+ * Update User Notification Preferences
+ */
+export async function updateNotificationPreferences(values: any) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { error: "Unauthorized." };
+    }
+
+    const validated = NotificationPreferencesSchema.safeParse(values);
+    if (!validated.success) {
+      return { error: "Invalid preference data." };
+    }
+
+    const { emailAuditReports, statusChangeAlerts } = validated.data;
+
+    await db.user.update({
+      where: { id: session.user.id },
+      data: { emailAuditReports, statusChangeAlerts },
+    });
+
+    revalidatePath("/dashboard/settings");
+    return { success: "Notification preferences saved successfully!" };
+  } catch (error) {
+    console.error("Update notification preferences error:", error);
+    return { error: "Failed to save preferences." };
+  }
 }

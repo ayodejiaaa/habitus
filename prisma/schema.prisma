@@ -53,6 +53,8 @@ model User {
   role              UserRole            @default(CLIENT)
   emailVerified     DateTime?
   image             String?
+  emailAuditReports Boolean             @default(true)
+  statusChangeAlerts Boolean            @default(true)
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   requests          InspectionRequest[]

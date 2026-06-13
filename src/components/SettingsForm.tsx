@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UpdateProfileSchema, ChangePasswordSchema } from "@/lib/schemas";
-import { updateProfile, changePassword } from "@/lib/actions";
+import { UpdateProfileSchema, ChangePasswordSchema, NotificationPreferencesSchema } from "@/lib/schemas";
+import { updateProfile, changePassword, updateNotificationPreferences } from "@/lib/actions";
 import { Button } from "./ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import { User, Lock, Bell } from "lucide-react";
@@ -13,6 +13,8 @@ interface SettingsFormProps {
   initialUser: {
     name: string | null;
     email: string;
+    emailAuditReports: boolean;
+    statusChangeAlerts: boolean;
   };
 }
 
@@ -84,18 +86,36 @@ export default function SettingsForm({ initialUser }: SettingsFormProps) {
     }
   };
 
-  // Form 3: Notification mock
+  // Form 3: Notification Persistence
+  const [notifError, setNotifError] = useState<string | null>(null);
   const [notifSuccess, setNotifSuccess] = useState<string | null>(null);
   const [notifLoading, setNotifLoading] = useState(false);
 
-  const handleNotifSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register: registerNotif,
+    handleSubmit: handleNotifSubmit,
+    formState: { errors: notifErrors },
+  } = useForm({
+    resolver: zodResolver(NotificationPreferencesSchema),
+    defaultValues: {
+      emailAuditReports: initialUser.emailAuditReports,
+      statusChangeAlerts: initialUser.statusChangeAlerts,
+    },
+  });
+
+  const onNotifSubmit = async (data: any) => {
     setNotifLoading(true);
+    setNotifError(null);
     setNotifSuccess(null);
-    setTimeout(() => {
-      setNotifLoading(false);
-      setNotifSuccess("Notification preferences updated!");
-    }, 800);
+
+    const res = await updateNotificationPreferences(data);
+
+    setNotifLoading(false);
+    if (res.error) {
+      setNotifError(res.error);
+    } else {
+      setNotifSuccess(res.success || "Notification preferences saved successfully!");
+    }
   };
 
   return (
@@ -242,7 +262,12 @@ export default function SettingsForm({ initialUser }: SettingsFormProps) {
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <form onSubmit={handleNotifSubmit} className="space-y-6 max-w-md">
+          <form onSubmit={handleNotifSubmit(onNotifSubmit)} className="space-y-6 max-w-md">
+            {notifError && (
+              <div className="bg-red-50 text-red-700 text-xs font-semibold p-3 rounded border border-red-200">
+                {notifError}
+              </div>
+            )}
             {notifSuccess && (
               <div className="bg-emerald-50 text-emerald-700 text-xs font-semibold p-3 rounded border border-emerald-200">
                 {notifSuccess}
@@ -253,8 +278,9 @@ export default function SettingsForm({ initialUser }: SettingsFormProps) {
               <label className="flex items-start space-x-3 cursor-pointer">
                 <input
                   type="checkbox"
-                  defaultChecked
-                  className="rounded border-gray-300 text-primary focus:ring-primary h-4.5 w-4.5 mt-0.5"
+                  disabled={notifLoading}
+                  className="rounded border-gray-300 text-primary focus:ring-primary h-4.5 w-4.5 mt-0.5 disabled:opacity-50 cursor-pointer"
+                  {...registerNotif("emailAuditReports")}
                 />
                 <div>
                   <span className="text-sm font-semibold text-charcoal block">Email Audit Reports</span>
@@ -265,8 +291,9 @@ export default function SettingsForm({ initialUser }: SettingsFormProps) {
               <label className="flex items-start space-x-3 cursor-pointer">
                 <input
                   type="checkbox"
-                  defaultChecked
-                  className="rounded border-gray-300 text-primary focus:ring-primary h-4.5 w-4.5 mt-0.5"
+                  disabled={notifLoading}
+                  className="rounded border-gray-300 text-primary focus:ring-primary h-4.5 w-4.5 mt-0.5 disabled:opacity-50 cursor-pointer"
+                  {...registerNotif("statusChangeAlerts")}
                 />
                 <div>
                   <span className="text-sm font-semibold text-charcoal block">Status Change Alerts</span>
