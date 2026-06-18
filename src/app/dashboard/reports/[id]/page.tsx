@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import Link from "next/link";
@@ -7,6 +8,28 @@ import { ArrowLeft, MapPin, Calendar, ShieldCheck, AlertCircle, AlertOctagon, He
 
 interface PageProps {
   params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  try {
+    const { id } = await params;
+    const report = await db.inspectionReport.findUnique({
+      where: { id },
+      select: {
+        request: {
+          select: {
+            projectName: true,
+          },
+        },
+      },
+    });
+    if (!report?.request?.projectName) {
+      return { title: "Report Details" };
+    }
+    return { title: `Report: ${report.request.projectName}` };
+  } catch (error) {
+    return { title: "Report Details" };
+  }
 }
 
 function getEmbedUrl(url: string) {

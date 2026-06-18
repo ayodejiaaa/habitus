@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import React from "react";
 import RegisterForm from "./register-form";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+
+export const metadata: Metadata = {
+  title: "Sign Up",
+};
 
 export default function RegisterPage() {
   return (

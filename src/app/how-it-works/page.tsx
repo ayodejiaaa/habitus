@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ClipboardList, UserCheck, Eye, ClipboardCheck, Award } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "How It Works",
+};
 
 export default function HowItWorksPage() {
   const steps = [

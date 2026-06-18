@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -5,6 +6,10 @@ import RequestInspectionDialog from "@/components/RequestInspectionDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Phone, User, Calendar, Info } from "lucide-react";
 import { getInspectionServices } from "@/lib/services";
+
+export const metadata: Metadata = {
+  title: "Requests",
+};
 
 export default async function RequestsPage() {
   const session = await auth();

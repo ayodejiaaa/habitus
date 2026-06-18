@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import ServicesManager from "./services-manager";
+
+export const metadata: Metadata = {
+  title: "Admin Services",
+};
 
 export default async function AdminServicesPage() {
   const session = await auth();

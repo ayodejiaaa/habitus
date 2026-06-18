@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import Link from "next/link";
@@ -5,6 +6,10 @@ import { redirect } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Calendar, MapPin, Eye } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Reports",
+};
 
 export default async function ReportsPage() {
   const session = await auth();

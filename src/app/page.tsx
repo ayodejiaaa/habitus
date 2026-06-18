@@ -29,7 +29,7 @@ export default async function HomePage() {
               </div>
               
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-charcoal leading-tight">
-                Build back home with <span className="text-primary">calm confidence.</span>
+                Build Back Home <span className="text-primary">With Confidence.</span>
               </h1>
               
               <p className="text-lg text-gray-600 max-w-xl mx-auto lg:mx-0 leading-relaxed">
@@ -215,7 +215,7 @@ export default async function HomePage() {
                 Professional, Unbiased Inspections. Direct to Your Screen.
               </h2>
               <p className="text-gray-600 leading-relaxed">
-                We contract certified local site inspectors who act as your eyes on the ground. They visit your property, audit the work, take photos/videos, and submit their assessment directly to our team.
+                We contract certified local site inspectors who perform independent audits. They visit your property, audit the work, take photos/videos, and submit their assessment directly to our team.
               </p>
               
               <ul className="space-y-4 pt-2">

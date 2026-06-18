@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import React from "react";
 import ForgotForm from "./forgot-form";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+
+export const metadata: Metadata = {
+  title: "Forgot Password",
+};
 
 export default function ForgotPasswordPage() {
   return (

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,10 @@ import Link from "next/link";
 import { Check, Lock } from "lucide-react";
 import { getInspectionServices } from "@/lib/services";
 import { cn } from "@/lib/utils";
+
+export const metadata: Metadata = {
+  title: "Pricing",
+};
 
 export default async function PricingPage() {
   const services = await getInspectionServices();

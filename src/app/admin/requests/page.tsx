@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -6,6 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Phone, User, Calendar, Mail, FileCheck } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+
+export const metadata: Metadata = {
+  title: "Admin Requests",
+};
 
 export default async function AdminRequestsPage() {
   const session = await auth();

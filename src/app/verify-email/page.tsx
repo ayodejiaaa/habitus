@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Verify Email",
+};
 
 export default function VerifyEmailPage() {
   return (

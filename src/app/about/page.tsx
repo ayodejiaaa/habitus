@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Shield, Eye, Award, Landmark } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "About",
+};
 
 export default function AboutPage() {
   const values = [

@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import React, { Suspense } from "react";
 import LoginForm from "./login-form";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+
+export const metadata: Metadata = {
+  title: "Login",
+};
 
 export default function LoginPage() {
   return (

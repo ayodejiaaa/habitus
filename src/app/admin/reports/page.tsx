@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import React, { Suspense } from "react";
 import ReportBuilderForm from "@/components/ReportBuilderForm";
+
+export const metadata: Metadata = {
+  title: "Admin Reports",
+};
 
 export default async function AdminReportsPage() {
   const session = await auth();
