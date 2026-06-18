@@ -71,6 +71,8 @@ model InspectionRequest {
   country             String
   propertyType        String             // "Residential" | "Commercial" | "Other"
   stage               RequestStage
+  serviceId           String
+  service             InspectionService  @relation(fields: [serviceId], references: [id])
   siteContactName     String
   siteContactPhone    String
   notes               String?
@@ -102,4 +104,17 @@ model MediaAsset {
   type        AssetType
   url         String
   createdAt   DateTime          @default(now())
+}
+
+model InspectionService {
+  id           String              @id @default(cuid())
+  name         String
+  slug         String              @unique
+  description  String
+  price        Float
+  isActive     Boolean             @default(false)
+  displayOrder Int                 @default(0)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  requests     InspectionRequest[]
 }

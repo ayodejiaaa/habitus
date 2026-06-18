@@ -21,6 +21,7 @@ export default async function AdminRequestsPage() {
     include: {
       user: true,
       reports: true,
+      service: true,
     },
   });
 
@@ -46,12 +47,15 @@ export default async function AdminRequestsPage() {
                     ID: {req.id}
                   </span>
                   <h3 className="font-bold text-lg text-charcoal">{req.projectName}</h3>
-                  <div className="flex items-center space-x-1.5 text-xs text-gray-400">
+                  <span className="text-xs text-primary font-bold block mt-0.5">
+                    {req.service?.name || "Standard Inspection"}
+                  </span>
+                  <div className="flex items-center space-x-1.5 text-xs text-gray-400 mt-1">
                     <Calendar className="h-3.5 w-3.5" />
                     <span>Requested {new Date(req.createdAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</span>
                     <span className="mx-2 text-gray-300">|</span>
                     <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                      Paid (₦350k)
+                      Paid (₦{req.service?.price.toLocaleString() || "350,000"})
                     </span>
                   </div>
                 </div>

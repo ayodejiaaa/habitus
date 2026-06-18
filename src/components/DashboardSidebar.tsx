@@ -30,6 +30,7 @@ export default function DashboardSidebar({ role }: SidebarProps) {
   const adminLinks = [
     { name: "Requests Manager", href: "/admin/requests", icon: ClipboardList },
     { name: "Report Builder", href: "/admin/reports", icon: FileText },
+    { name: "Manage Services", href: "/admin/services", icon: Settings },
     { name: "Manage Users", href: "/admin/users", icon: Users },
   ];
 

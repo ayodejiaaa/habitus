@@ -76,6 +76,7 @@ export async function createInspectionRequest(values: any) {
         country: data.country,
         propertyType: data.propertyType,
         stage: data.stage,
+        serviceId: data.serviceId,
         siteContactName: data.siteContactName,
         siteContactPhone: data.siteContactPhone,
         notes: data.notes || null,
@@ -299,5 +300,65 @@ export async function updateNotificationPreferences(values: any) {
   } catch (error) {
     console.error("Update notification preferences error:", error);
     return { error: "Failed to save preferences." };
+  }
+}
+
+/**
+ * Update inspection service price (Admin only)
+ */
+export async function updateServicePrice(serviceId: string, price: number) {
+  try {
+    const session = await auth();
+    const role = (session?.user as any)?.role;
+    
+    if (!session?.user || role !== "ADMIN") {
+      return { error: "Unauthorized access." };
+    }
+
+    if (isNaN(price) || price < 0) {
+      return { error: "Price must be a valid positive number." };
+    }
+
+    await db.inspectionService.update({
+      where: { id: serviceId },
+      data: { price },
+    });
+
+    revalidatePath("/");
+    revalidatePath("/pricing");
+    revalidatePath("/dashboard/requests");
+    revalidatePath("/admin/services");
+    return { success: "Price updated successfully!" };
+  } catch (error) {
+    console.error("Update service price error:", error);
+    return { error: "Failed to update price." };
+  }
+}
+
+/**
+ * Toggle inspection service active status (Admin only)
+ */
+export async function toggleServiceActive(serviceId: string, isActive: boolean) {
+  try {
+    const session = await auth();
+    const role = (session?.user as any)?.role;
+    
+    if (!session?.user || role !== "ADMIN") {
+      return { error: "Unauthorized access." };
+    }
+
+    await db.inspectionService.update({
+      where: { id: serviceId },
+      data: { isActive },
+    });
+
+    revalidatePath("/");
+    revalidatePath("/pricing");
+    revalidatePath("/dashboard/requests");
+    revalidatePath("/admin/services");
+    return { success: `Service availability status updated!` };
+  } catch (error) {
+    console.error("Toggle service active status error:", error);
+    return { error: "Failed to toggle status." };
   }
 }

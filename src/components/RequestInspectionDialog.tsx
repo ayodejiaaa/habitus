@@ -6,16 +6,28 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { InspectionRequestSchema } from "@/lib/schemas";
 import { createInspectionRequest } from "@/lib/actions";
 import { Button } from "./ui/button";
-import { X, Plus, ClipboardList } from "lucide-react";
+import { X, Plus, ClipboardList, Lock, Loader2 } from "lucide-react";
 
-export default function RequestInspectionDialog() {
+interface ServiceItem {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  price: number;
+  isActive: boolean;
+}
+
+interface RequestInspectionDialogProps {
+  services: ServiceItem[];
+}
+
+export default function RequestInspectionDialog({ services }: RequestInspectionDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
-  // Step states: "details" | "payment" | "processing" | "success"
-  const [step, setStep] = useState<"details" | "payment" | "processing" | "success">("details");
+  // Step states: "service" | "details" | "payment" | "processing" | "success"
+  const [step, setStep] = useState<"service" | "details" | "payment" | "processing" | "success">("service");
   const [paymentMethod, setPaymentMethod] = useState<"card" | "transfer">("card");
   const [cardName, setCardName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
@@ -28,10 +40,13 @@ export default function RequestInspectionDialog() {
     handleSubmit,
     trigger,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(InspectionRequestSchema),
     defaultValues: {
+      serviceId: "",
       projectName: "",
       propertyAddress: "",
       city: "Lagos",
@@ -45,6 +60,9 @@ export default function RequestInspectionDialog() {
       specialInstructions: "",
     },
   });
+
+  const serviceId = watch("serviceId");
+  const selectedService = services.find((s) => s.id === serviceId);
 
   const onSubmit = async (data: any) => {
     setIsLoading(true);
@@ -72,7 +90,17 @@ export default function RequestInspectionDialog() {
 
   const handleProceedToPayment = async (e: React.MouseEvent) => {
     e.preventDefault();
-    const isValid = await trigger();
+    const isValid = await trigger([
+      "projectName",
+      "propertyAddress",
+      "city",
+      "state",
+      "country",
+      "propertyType",
+      "stage",
+      "siteContactName",
+      "siteContactPhone"
+    ]);
     if (isValid) {
       setStep("payment");
     }
@@ -96,7 +124,8 @@ export default function RequestInspectionDialog() {
     setTimeout(() => {
       setPaymentStatusText("Contacting card issuer network...");
       setTimeout(() => {
-        setPaymentStatusText("Authorizing ₦350,000 charge...");
+        const amt = selectedService ? `₦${selectedService.price.toLocaleString()}` : "₦350,000";
+        setPaymentStatusText(`Authorizing ${amt} charge...`);
         setTimeout(async () => {
           await handleSubmit(onSubmit)();
         }, 800);
@@ -107,7 +136,7 @@ export default function RequestInspectionDialog() {
   const handleClose = () => {
     if (!isLoading && step !== "processing") {
       setIsOpen(false);
-      setStep("details");
+      setStep("service");
       setError(null);
     }
   };
@@ -133,6 +162,7 @@ export default function RequestInspectionDialog() {
               <div className="flex items-center space-x-2 text-primary">
                 <ClipboardList className="h-5 w-5" />
                 <h3 className="text-lg font-bold text-charcoal">
+                  {step === "service" && "Select Inspection Type"}
                   {step === "details" && "New Inspection Request"}
                   {step === "payment" && "Secure Checkout"}
                   {step === "processing" && "Processing Payment"}
@@ -168,15 +198,105 @@ export default function RequestInspectionDialog() {
                 <div className="space-y-2 max-w-md">
                   <h4 className="text-xl font-black text-charcoal">Payment Approved!</h4>
                   <p className="text-sm text-gray-500 leading-relaxed">
-                    Your inspection request has been submitted successfully. We have processed your fee of **₦350,000** ($250 USD). 
+                    Your inspection request has been submitted successfully. We have processed your fee of **₦{selectedService ? selectedService.price.toLocaleString() : "350,000"}**. 
                   </p>
                   <p className="text-xs text-gray-400 mt-2">
                     A verification auditor has been assigned to your Lagos property. You can monitor progress under the Requests tab.
                   </p>
                 </div>
-                <Button onClick={() => { setIsOpen(false); setStep("details"); }} className="font-bold px-8">
+                <Button onClick={() => { setIsOpen(false); setStep("service"); }} className="font-bold px-8">
                   Done
                 </Button>
+              </div>
+            )}
+
+            {/* Step: Service Selection */}
+            {step === "service" && (
+              <div className="space-y-6">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Choose an Inspection Phase</h4>
+                  <p className="text-xs text-gray-500">
+                    Select the verification service that matches your project's current construction phase. Only active services can be ordered.
+                  </p>
+                </div>
+
+                <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+                  {services.map((service) => {
+                    const isActive = service.isActive;
+                    const isSelected = serviceId === service.id;
+                    return (
+                      <button
+                        key={service.id}
+                        type="button"
+                        disabled={!isActive}
+                        onClick={() => setValue("serviceId", service.id)}
+                        className={`w-full text-left p-4 rounded-xl border transition-all flex items-start gap-4 ${
+                          !isActive 
+                            ? "bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed" 
+                            : isSelected 
+                              ? "border-primary bg-primary/5 ring-1 ring-primary"
+                              : "border-border bg-white hover:bg-gray-50 cursor-pointer"
+                        }`}
+                      >
+                        <div className="mt-1">
+                          {isActive ? (
+                            <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${isSelected ? "border-primary text-primary" : "border-gray-300"}`}>
+                              {isSelected && <div className="h-2 w-2 rounded-full bg-primary" />}
+                            </div>
+                          ) : (
+                            <Lock className="h-3.5 w-3.5 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <div className="flex justify-between items-center gap-2">
+                            <span className={`font-bold text-sm ${isSelected ? "text-primary" : "text-charcoal"}`}>
+                              {service.name}
+                            </span>
+                            {!isActive && (
+                              <span className="bg-gray-100 text-gray-500 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border border-gray-200">
+                                Coming Soon
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 leading-relaxed">
+                            {service.description}
+                          </p>
+                          {isActive && (
+                            <span className="text-xs font-semibold text-charcoal block pt-1">
+                              ₦{service.price.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {errors.serviceId && (
+                  <p className="text-red-500 text-xs">{errors.serviceId.message as string}</p>
+                )}
+
+                <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-6">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleClose}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="button" 
+                    onClick={async () => {
+                      const isValid = await trigger("serviceId");
+                      if (isValid) {
+                        setStep("details");
+                      }
+                    }} 
+                    className="font-bold"
+                  >
+                    Continue to Details
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -386,12 +506,12 @@ export default function RequestInspectionDialog() {
                     type="button" 
                     variant="outline" 
                     disabled={isLoading}
-                    onClick={handleClose}
+                    onClick={() => setStep("service")}
                   >
-                    Cancel
+                    Back
                   </Button>
                   <Button type="button" onClick={handleProceedToPayment} className="font-bold flex items-center gap-1.5">
-                    Proceed to Payment (₦350k)
+                    Proceed to Payment (₦{selectedService ? selectedService.price.toLocaleString() : "350,000"})
                   </Button>
                 </div>
               </form>
@@ -410,8 +530,8 @@ export default function RequestInspectionDialog() {
                 <div className="bg-gray-50 border border-border rounded-lg p-5 space-y-3">
                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Order Summary</h4>
                   <div className="flex justify-between items-center text-sm font-semibold">
-                    <span className="text-charcoal">Construction Verification Inspection</span>
-                    <span className="text-primary text-base">₦350,000</span>
+                    <span className="text-charcoal">{selectedService ? selectedService.name : "Construction Verification Inspection"}</span>
+                    <span className="text-primary text-base">₦{selectedService ? selectedService.price.toLocaleString() : "350,000"}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs text-gray-500 border-t border-gray-100 pt-2">
                     <span>Lagos Launch Verification Service</span>
@@ -510,7 +630,7 @@ export default function RequestInspectionDialog() {
                   <div className="space-y-4 border-t border-gray-100 pt-4 bg-primary/5 p-4 rounded-lg border border-primary/15">
                     <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Sterling Bank Transfer</h4>
                     <p className="text-xs text-gray-600 leading-relaxed">
-                      To complete this inspection order, please transfer **₦350,000** to the following account:
+                      To complete this inspection order, please transfer **₦{selectedService ? selectedService.price.toLocaleString() : "350,000"}** to the following account:
                     </p>
                     <div className="space-y-1.5 text-xs text-charcoal font-semibold">
                       <div>Bank: <span className="text-primary font-bold">Sterling Bank PLC</span></div>
@@ -533,7 +653,7 @@ export default function RequestInspectionDialog() {
                     Back to Details
                   </Button>
                   <Button type="submit" className="font-bold flex items-center gap-1.5">
-                    Pay ₦350,000 ($250 USD)
+                    Pay ₦{selectedService ? selectedService.price.toLocaleString() : "350,000"} ($250 USD)
                   </Button>
                 </div>
               </form>

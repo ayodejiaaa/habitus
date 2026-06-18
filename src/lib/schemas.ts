@@ -39,6 +39,7 @@ export const InspectionRequestSchema = z.object({
   stage: z.enum(["FOUNDATION", "STRUCTURE", "ROOFING", "FINISHING", "OTHER"], {
     message: "Please select the current stage",
   }),
+  serviceId: z.string().min(1, "Please select an inspection type"),
   siteContactName: z.string().min(2, "Site Contact Name is required"),
   siteContactPhone: z.string().min(5, "Site Contact Phone is required"),
   notes: z.string().optional(),

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import RequestInspectionDialog from "@/components/RequestInspectionDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Phone, User, Calendar, Info } from "lucide-react";
+import { getInspectionServices } from "@/lib/services";
 
 export default async function RequestsPage() {
   const session = await auth();
@@ -13,11 +14,15 @@ export default async function RequestsPage() {
 
   const userId = session.user.id;
 
-  // Query requests
-  const requests = await db.inspectionRequest.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-  });
+  // Query requests and services
+  const [requests, services] = await Promise.all([
+    db.inspectionRequest.findMany({
+      where: { userId },
+      include: { service: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    getInspectionServices(),
+  ]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -42,7 +47,7 @@ export default async function RequestsPage() {
           <h1 className="text-3xl font-black text-charcoal">Inspection Requests</h1>
           <p className="text-sm text-gray-500">Submit new sites for independent audit and view ongoing requests.</p>
         </div>
-        <RequestInspectionDialog />
+        <RequestInspectionDialog services={services} />
       </div>
 
       {/* Requests Feed */}
@@ -62,6 +67,9 @@ export default async function RequestsPage() {
               <div className="p-6 pb-4 flex justify-between items-start">
                 <div>
                   <h3 className="font-bold text-lg text-charcoal">{req.projectName}</h3>
+                  <span className="text-xs text-primary font-bold block mt-0.5">
+                    {req.service?.name || "Standard Inspection"}
+                  </span>
                   <div className="flex items-center space-x-1 text-xs text-gray-400 mt-1">
                     <Calendar className="h-3.5 w-3.5" />
                     <span>Submitted {new Date(req.createdAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</span>
@@ -69,7 +77,7 @@ export default async function RequestsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-bold px-2.5 py-1 rounded-full">
-                    Paid (₦350k)
+                    Paid (₦{req.service?.price.toLocaleString() || "350,000"})
                   </span>
                   <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${getStatusColor(req.status)}`}>
                     {req.status}

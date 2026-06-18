@@ -2,9 +2,13 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Eye, Sparkles, Building2, ChevronRight, AlertTriangle } from "lucide-react";
+import { ShieldCheck, Eye, Sparkles, Building2, ChevronRight, AlertTriangle, Lock } from "lucide-react";
+import { getInspectionServices } from "@/lib/services";
+import { cn } from "@/lib/utils";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const services = await getInspectionServices();
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -264,6 +268,90 @@ export default function HomePage() {
               </div>
             </div>
 
+          </div>
+        </div>
+      </section>
+
+      {/* Inspection Services */}
+      <section className="py-20 bg-brand-bg border-t border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center space-y-4 max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl font-extrabold text-charcoal sm:text-4xl">
+              Inspection Services
+            </h2>
+            <p className="text-gray-500 text-sm sm:text-base max-w-xl mx-auto">
+              Habitus is building a comprehensive trust layer for every stage of your home-building journey. We start by verifying your project today, and eventually we'll support you through every major stage of construction.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {services.map((service) => {
+              const isActive = service.isActive;
+              return (
+                <div 
+                  key={service.id} 
+                  className={cn(
+                    "rounded-2xl p-6 border bg-white flex flex-col justify-between transition-all duration-300 shadow-xs hover:shadow-md",
+                    isActive 
+                      ? "border-primary/30 ring-2 ring-primary/5" 
+                      : "border-border opacity-80"
+                  )}
+                >
+                  <div className="space-y-4">
+                    {/* Header: Name and Badge */}
+                    <div className="flex justify-between items-start gap-4">
+                      <h3 className={cn("font-bold text-lg", isActive ? "text-charcoal" : "text-gray-700")}>
+                        {service.name}
+                      </h3>
+                      {isActive ? (
+                        <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-emerald-100 shrink-0">
+                          Available
+                        </span>
+                      ) : (
+                        <span className="bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-gray-200 shrink-0 flex items-center gap-1">
+                          <Lock className="h-2.5 w-2.5" /> Coming Soon
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    <p className={cn("text-xs leading-relaxed", isActive ? "text-gray-600" : "text-gray-400")}>
+                      {service.description}
+                    </p>
+                  </div>
+
+                  {/* Pricing and Button */}
+                  <div className="mt-8 pt-4 border-t border-gray-50 space-y-4">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Price</span>
+                      <div className="text-right">
+                        <span className={cn("text-xl font-black block", isActive ? "text-charcoal" : "text-gray-400")}>
+                          ₦{service.price.toLocaleString()}
+                        </span>
+                        {isActive && (
+                          <span className="text-[10px] text-gray-400 font-semibold block">($250 USD equivalent)</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {isActive ? (
+                      <Link href="/register" className="block w-full">
+                        <Button className="w-full font-bold text-xs py-2 bg-primary text-white hover:bg-primary/95">
+                          Order Verification
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button 
+                        disabled 
+                        className="w-full font-bold text-xs py-2 bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
+                      >
+                        Notify Me
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
