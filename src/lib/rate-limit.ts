@@ -7,6 +7,7 @@ interface RateLimitRecord {
 // Global in-memory maps for rate limiting
 const emailLimiter = new Map<string, RateLimitRecord>();
 const ipLimiter = new Map<string, RateLimitRecord>();
+const verificationLimiter = new Map<string, RateLimitRecord>();
 
 const LIMIT = 5;
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour
@@ -55,4 +56,28 @@ export async function rateLimit(email: string): Promise<{ success: boolean; limi
   }
   
   return { success: true, limit: LIMIT, remaining: Math.min(emailCheck.remaining, ipCheck.remaining) };
+}
+
+/**
+ * Enforces a rate limit of 3 verification emails per hour per user account.
+ */
+export async function rateLimitVerification(userId: string): Promise<boolean> {
+  const now = Date.now();
+  const VERIFY_LIMIT = 3;
+  
+  let record = verificationLimiter.get(userId);
+  if (!record) {
+    record = { timestamps: [] };
+    verificationLimiter.set(userId, record);
+  }
+  
+  // Filter out timestamps outside the 1-hour window
+  record.timestamps = record.timestamps.filter((ts) => now - ts < WINDOW_MS);
+  
+  if (record.timestamps.length >= VERIFY_LIMIT) {
+    return false;
+  }
+  
+  record.timestamps.push(now);
+  return true;
 }

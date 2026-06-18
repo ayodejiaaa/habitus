@@ -9,6 +9,7 @@ import { RegisterSchema } from "@/lib/schemas";
 import { registerUser } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck } from "lucide-react";
+import { signIn } from "next-auth/react";
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -40,11 +41,23 @@ export default function RegisterForm() {
     if (res.error) {
       setError(res.error);
     } else {
-      setSuccess(res.success || "Account created successfully!");
-      // Redirect after 2 seconds
-      setTimeout(() => {
+      setSuccess("Account created successfully! Logging you in...");
+      try {
+        const loginRes = await signIn("credentials", {
+          email: data.email,
+          password: data.password,
+          redirect: false,
+        });
+
+        if (loginRes?.error) {
+          router.push("/login");
+        } else {
+          router.push("/verify-email/pending");
+          router.refresh();
+        }
+      } catch (err) {
         router.push("/login");
-      }, 2000);
+      }
     }
   };
 

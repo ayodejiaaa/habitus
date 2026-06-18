@@ -14,6 +14,11 @@ import {
 } from "./schemas";
 import { RequestStatus } from "@prisma/client";
 
+import { generateVerificationToken } from "./tokens";
+import { sendEmailVerificationEmail } from "./email";
+import { logSecurity } from "./security";
+import { rateLimitVerification } from "./rate-limit";
+
 /**
  * Register a new user
  */
@@ -25,7 +30,7 @@ export async function registerUser(values: any) {
     }
 
     const { name, email, password } = validated.data;
-    const existingUser = await db.user.findUnique({ where: { email } });
+    const existingUser = await db.user.findUnique({ where: { email: email.toLowerCase().trim() } });
 
     if (existingUser) {
       return { error: "Email already in use." };
@@ -33,16 +38,25 @@ export async function registerUser(values: any) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    await db.user.create({
+    const user = await db.user.create({
       data: {
         name,
-        email,
+        email: email.toLowerCase().trim(),
         password: hashedPassword,
         role: "CLIENT",
       },
     });
 
-    return { success: "Account created successfully! You can now login." };
+    // Generate token & send email
+    const token = await generateVerificationToken(user.id);
+    const appUrl = process.env.APP_URL || "http://localhost:3000";
+    const verificationLink = `${appUrl}/verify-email/${token}`;
+    
+    await sendEmailVerificationEmail(user.email, verificationLink);
+
+    logSecurity("VERIFICATION_EMAIL_SENT", { email: user.email });
+
+    return { success: "Account created successfully! Please check your email to verify your account." };
   } catch (error: any) {
     console.error("Register error:", error);
     return { error: "Something went wrong. Please try again." };
@@ -360,5 +374,59 @@ export async function toggleServiceActive(serviceId: string, isActive: boolean) 
   } catch (error) {
     console.error("Toggle service active status error:", error);
     return { error: "Failed to toggle status." };
+  }
+}
+
+/**
+ * Resends the verification email to the logged in unverified user.
+ */
+export async function resendVerificationEmail() {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { error: "Unauthenticated." };
+    }
+
+    const userId = session.user.id;
+
+    // Fetch user details
+    const user = await db.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return { error: "User not found." };
+    }
+
+    if (user.emailVerified) {
+      return { error: "Email is already verified." };
+    }
+
+    // Rate Limiting: Max 3 per hour
+    const canSend = await rateLimitVerification(userId);
+    if (!canSend) {
+      logSecurity("VERIFICATION_FAILED", {
+        email: user.email,
+        reason: "Rate limit exceeded on resend",
+      });
+      return { error: "Too many verification emails sent. Please try again in an hour." };
+    }
+
+    // Generate new token & send email
+    const token = await generateVerificationToken(user.id);
+    const appUrl = process.env.APP_URL || "http://localhost:3000";
+    const verificationLink = `${appUrl}/verify-email/${token}`;
+    
+    await sendEmailVerificationEmail(user.email, verificationLink);
+
+    logSecurity("VERIFICATION_RESENT", {
+      email: user.email,
+      tokenId: token,
+    });
+
+    return { success: "Verification email resent successfully. Please check your inbox." };
+  } catch (error) {
+    console.error("Resend verification error:", error);
+    return { error: "Failed to resend verification email." };
   }
 }

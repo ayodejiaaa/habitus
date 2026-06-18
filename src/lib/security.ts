@@ -11,7 +11,14 @@ export function hashToken(rawToken: string): string {
 }
 
 export function logSecurity(
-  action: "PASSWORD_RESET_REQUESTED" | "PASSWORD_RESET_COMPLETED" | "PASSWORD_RESET_FAILED",
+  action:
+    | "PASSWORD_RESET_REQUESTED"
+    | "PASSWORD_RESET_COMPLETED"
+    | "PASSWORD_RESET_FAILED"
+    | "VERIFICATION_EMAIL_SENT"
+    | "VERIFICATION_SUCCESSFUL"
+    | "VERIFICATION_FAILED"
+    | "VERIFICATION_RESENT",
   details: { email: string; reason?: string; ip?: string; tokenId?: string }
 ) {
   const timestamp = new Date().toISOString();
