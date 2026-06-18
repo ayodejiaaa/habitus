@@ -1,16 +1,10 @@
-import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
-
-const ses = new SESClient({
-  region: process.env.AWS_REGION || "us-east-1",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "fake-key",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "fake-secret",
-  },
-});
-
 export async function sendPasswordResetEmail(email: string, resetLink: string) {
-  const fromEmail = process.env.SES_FROM_EMAIL || "no-reply@habitus.africa";
-  
+  const apiToken = process.env.ZEPTOMAIL_API_TOKEN;
+  const fromEmail = process.env.ZEPTOMAIL_FROM_EMAIL || "contact@habitus.africa";
+  const fromName = process.env.ZEPTOMAIL_FROM_NAME || "Habitus";
+  const bounceAddress = process.env.ZEPTOMAIL_BOUNCE_ADDRESS || "bounce@bounce.habitus.africa";
+  const apiUrl = process.env.ZEPTOMAIL_API_URL || "https://api.zeptomail.com/v1.1/email";
+
   const subject = "Reset your Habitus password";
   const htmlContent = `
 <!DOCTYPE html>
@@ -62,41 +56,52 @@ Habitus
 Build Back Home With Confidence.
   `.trim();
 
-  // Fallback logging in local dev
-  if (
-    !process.env.AWS_ACCESS_KEY_ID ||
-    process.env.AWS_ACCESS_KEY_ID === "fake-key" ||
-    !process.env.AWS_SECRET_ACCESS_KEY
-  ) {
-    console.warn("AWS credentials not configured. Reset link generated:");
+  // Fallback logging in local dev if no apiToken is configured
+  if (!apiToken || apiToken === "fake-key") {
+    console.warn("Zoho Zeptomail API token not configured. Reset link generated:");
     console.log(`>>> RESET LINK: ${resetLink}`);
     return;
   }
 
-  const command = new SendEmailCommand({
-    Source: fromEmail,
-    Destination: {
-      ToAddresses: [email],
+  // Format authorization header (prepend prefix if it doesn't already start with "Zoho-")
+  const authHeader = apiToken.startsWith("Zoho-") ? apiToken : `Zoho-enczapitoken ${apiToken}`;
+
+  const payload = {
+    bounce_address: bounceAddress,
+    from: {
+      address: fromEmail,
+      name: fromName,
     },
-    Message: {
-      Subject: {
-        Data: subject,
-      },
-      Body: {
-        Html: {
-          Data: htmlContent,
-        },
-        Text: {
-          Data: textContent,
+    to: [
+      {
+        email_address: {
+          address: email,
+          name: email.split("@")[0] || "User",
         },
       },
-    },
-  });
+    ],
+    subject: subject,
+    htmlbody: htmlContent,
+    textbody: textContent,
+  };
 
   try {
-    await ses.send(command);
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": authHeader,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Zeptomail API responded with status ${response.status}: ${errorText}`);
+    }
   } catch (error) {
-    console.error("Failed to send email via AWS SES. Reset link generated:");
+    console.error("Failed to send email via Zoho Zeptomail. Reset link generated:");
     console.log(`>>> RESET LINK: ${resetLink}`);
     throw error;
   }

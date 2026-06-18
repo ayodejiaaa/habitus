@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@aws-sdk/client-ses": "^3.1072.0",
     "@hookform/resolvers": "^5.4.0",
     "@prisma/client": "^6.2.1",
     "bcryptjs": "^3.0.3",
