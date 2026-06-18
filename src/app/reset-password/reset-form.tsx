@@ -4,20 +4,55 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { KeyRound } from "lucide-react";
+import { resetPassword } from "@/lib/auth-actions";
 
-export default function ResetForm() {
+interface ResetFormProps {
+  token: string;
+}
+
+export default function ResetForm({ token }: ResetFormProps) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const getPasswordStrength = (pwd: string) => {
+    if (!pwd) return { score: 0, label: "Very Weak", color: "bg-gray-200" };
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[a-z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    
+    if (score <= 1) return { score, label: "Weak", color: "bg-red-500" };
+    if (score <= 3) return { score, label: "Medium", color: "bg-amber-500" };
+    return { score, label: "Strong", color: "bg-emerald-500" };
+  };
+
+  const strength = getPasswordStrength(password);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      setError("Password must contain at least 1 uppercase letter.");
+      return;
+    }
+
+    if (!/[a-z]/.test(password)) {
+      setError("Password must contain at least 1 lowercase letter.");
+      return;
+    }
+
+    if (!/[0-9]/.test(password)) {
+      setError("Password must contain at least 1 number.");
       return;
     }
 
@@ -28,11 +63,23 @@ export default function ResetForm() {
 
     setIsLoading(true);
 
-    // Mock reset action
-    setTimeout(() => {
+    try {
+      const res = await resetPassword(token, { password, confirmPassword });
+      if (res?.error) {
+        setError(res.error);
+        setIsLoading(false);
+      } else {
+        setSuccess(true);
+        setIsLoading(false);
+        // Redirect after a brief delay
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 3000);
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
       setIsLoading(false);
-      setSuccess(true);
-    }, 1200);
+    }
   };
 
   return (
@@ -52,12 +99,12 @@ export default function ResetForm() {
         {success ? (
           <div className="space-y-4 text-center">
             <div className="bg-emerald-50 text-emerald-800 text-xs font-semibold p-4 rounded border border-emerald-200">
-              Your password has been successfully updated!
+              Password updated successfully. Redirecting to login...
             </div>
             <div className="pt-2">
               <Link href="/login">
                 <Button className="w-full font-bold">
-                  Log In with New Password
+                  Go to Log In
                 </Button>
               </Link>
             </div>
@@ -81,6 +128,29 @@ export default function ResetForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
               />
+              
+              {password && (
+                <div className="space-y-1.5 pt-1.5">
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-gray-500 font-medium">Strength:</span>
+                    <span className={`font-bold ${
+                      strength.score <= 1 ? "text-red-500" : strength.score <= 3 ? "text-amber-500" : "text-emerald-500"
+                    }`}>{strength.label}</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full ${strength.color} transition-all duration-300`} 
+                      style={{ width: `${(strength.score / 4) * 100}%` }}
+                    />
+                  </div>
+                  <ul className="text-[10px] text-gray-400 space-y-0.5 pt-1">
+                    <li className={password.length >= 8 ? "text-emerald-600 font-semibold" : ""}>✓ Minimum 8 characters</li>
+                    <li className={/[A-Z]/.test(password) ? "text-emerald-600 font-semibold" : ""}>✓ At least 1 uppercase letter</li>
+                    <li className={/[a-z]/.test(password) ? "text-emerald-600 font-semibold" : ""}>✓ At least 1 lowercase letter</li>
+                    <li className={/[0-9]/.test(password) ? "text-emerald-600 font-semibold" : ""}>✓ At least 1 number</li>
+                  </ul>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1">

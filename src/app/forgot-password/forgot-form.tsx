@@ -4,22 +4,33 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MailOpen } from "lucide-react";
+import { requestPasswordReset } from "@/lib/auth-actions";
 
 export default function ForgotForm() {
   const [email, setEmail] = useState("");
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     setIsLoading(true);
+    setError("");
 
-    // Mock reset action
-    setTimeout(() => {
+    try {
+      const res = await requestPasswordReset({ email });
+      if (res?.error) {
+        setError(res.error);
+        setIsLoading(false);
+      } else {
+        setSuccess(true);
+        setIsLoading(false);
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
       setIsLoading(false);
-      setSuccess(true);
-    }, 1200);
+    }
   };
 
   return (
@@ -36,10 +47,16 @@ export default function ForgotForm() {
           </p>
         </div>
 
+        {error && (
+          <div className="bg-red-50 text-red-700 text-xs font-semibold p-3.5 rounded border border-red-100 animate-in fade-in duration-200">
+            {error}
+          </div>
+        )}
+
         {success ? (
           <div className="space-y-4 text-center">
             <div className="bg-emerald-50 text-emerald-800 text-xs font-semibold p-4 rounded border border-emerald-200 leading-relaxed">
-              If an account matches <strong className="text-primary">{email}</strong>, we have sent instructions to reset your password. Please check your inbox and spam folders.
+              If an account exists for this email address, we have sent password reset instructions. Please check your inbox and spam folders.
             </div>
             <div className="pt-2">
               <Link href="/login">

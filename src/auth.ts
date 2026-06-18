@@ -42,8 +42,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           email: user.email,
           role: user.role,
+          passwordVersion: user.passwordVersion,
         };
       },
     }),
   ],
+  callbacks: {
+    ...authConfig.callbacks,
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = (user as any).role;
+        token.passwordVersion = (user as any).passwordVersion || 0;
+      } else if (token.id) {
+        try {
+          const dbUser = await db.user.findUnique({
+            where: { id: token.id as string },
+            select: { passwordVersion: true },
+          });
+          if (!dbUser || dbUser.passwordVersion !== token.passwordVersion) {
+            return {}; // returning empty token invalidates session
+          }
+        } catch (error) {
+          console.error("JWT validation database error:", error);
+        }
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token && token.id && session.user) {
+        (session.user as any).id = token.id as string;
+        (session.user as any).role = token.role;
+      }
+      return session;
+    },
+  },
 });

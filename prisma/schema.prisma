@@ -46,18 +46,20 @@ enum AssetType {
 }
 
 model User {
-  id                String              @id @default(cuid())
-  name              String?
-  email             String              @unique
-  password          String?             // Hashed password for credentials provider
-  role              UserRole            @default(CLIENT)
-  emailVerified     DateTime?
-  image             String?
-  emailAuditReports Boolean             @default(true)
-  statusChangeAlerts Boolean            @default(true)
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  requests          InspectionRequest[]
+  id                  String               @id @default(cuid())
+  name                String?
+  email               String               @unique
+  password            String?              // Hashed password for credentials provider
+  role                UserRole             @default(CLIENT)
+  emailVerified       DateTime?
+  image               String?
+  emailAuditReports   Boolean              @default(true)
+  statusChangeAlerts  Boolean              @default(true)
+  passwordVersion     Int                  @default(0)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  requests            InspectionRequest[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model InspectionRequest {
@@ -117,4 +119,14 @@ model InspectionService {
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
   requests     InspectionRequest[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 }
