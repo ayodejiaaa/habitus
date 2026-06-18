@@ -68,11 +68,16 @@ export default async function PricingPage() {
                       {isActive ? "Comprehensive site audit and verified evidence report" : "Verification for upcoming phases"}
                     </p>
                     <div className="pt-2 flex flex-col items-center">
-                      <span className="text-3xl font-black">₦{service.price.toLocaleString()}</span>
                       {isActive ? (
-                        <span className="text-emerald-100 text-xs font-semibold mt-0.5">($250 USD equivalent)</span>
+                        <>
+                          <span className="text-3xl font-black">₦{service.price.toLocaleString()}</span>
+                          <span className="text-emerald-100 text-xs font-semibold mt-0.5">($250 USD equivalent)</span>
+                        </>
                       ) : (
-                        <span className="text-gray-400 text-xs font-semibold mt-0.5">per inspection</span>
+                        <>
+                          <span className="text-2xl font-bold">TBD</span>
+                          <span className="text-xs font-semibold mt-0.5">Price to be announced</span>
+                        </>
                       )}
                     </div>
                   </div>

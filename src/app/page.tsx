@@ -325,11 +325,17 @@ export default async function HomePage() {
                     <div className="flex justify-between items-baseline">
                       <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Price</span>
                       <div className="text-right">
-                        <span className={cn("text-xl font-black block", isActive ? "text-charcoal" : "text-gray-400")}>
-                          ₦{service.price.toLocaleString()}
-                        </span>
-                        {isActive && (
-                          <span className="text-[10px] text-gray-400 font-semibold block">($250 USD equivalent)</span>
+                        {isActive ? (
+                          <>
+                            <span className="text-xl font-black block text-charcoal">
+                              ₦{service.price.toLocaleString()}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-semibold block">($250 USD equivalent)</span>
+                          </>
+                        ) : (
+                          <span className="text-sm font-semibold text-gray-400">
+                            TBD
+                          </span>
                         )}
                       </div>
                     </div>
