@@ -20,7 +20,7 @@ export default async function AdminLayout({
     select: { emailVerified: true, role: true },
   });
 
-  if (!user?.emailVerified) {
+  if (!user?.emailVerified && user?.role !== "ADMIN") {
     redirect("/verify-email/pending");
   }
 

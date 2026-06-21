@@ -18,13 +18,13 @@ export default async function VerifyEmailPendingPage() {
     redirect("/login");
   }
 
-  // If already verified in the DB, send to dashboard directly
+  // If already verified in the DB or is an admin, send to dashboard directly
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { emailVerified: true },
+    select: { emailVerified: true, role: true },
   });
 
-  if (user?.emailVerified) {
+  if (user?.emailVerified || user?.role === "ADMIN") {
     redirect("/dashboard");
   }
 
