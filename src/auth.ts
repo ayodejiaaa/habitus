@@ -4,7 +4,7 @@ import { authConfig } from "./auth.config";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   ...authConfig,
   secret: process.env.AUTH_SECRET,
   trustHost: true,
@@ -50,7 +50,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     ...authConfig.callbacks,
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      if (trigger === "update" && session?.user) {
+        token.name = session.user.name;
+        token.email = session.user.email;
+      }
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
@@ -60,12 +64,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         try {
           const dbUser = await db.user.findUnique({
             where: { id: token.id as string },
-            select: { passwordVersion: true, emailVerified: true },
+            select: { passwordVersion: true, emailVerified: true, name: true, email: true },
           });
           if (!dbUser || dbUser.passwordVersion !== token.passwordVersion) {
             return {}; // returning empty token invalidates session
           }
           token.emailVerified = dbUser.emailVerified;
+          token.name = dbUser.name;
+          token.email = dbUser.email;
         } catch (error) {
           console.error("JWT validation database error:", error);
         }
@@ -77,6 +83,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         (session.user as any).id = token.id as string;
         (session.user as any).role = token.role;
         (session.user as any).emailVerified = token.emailVerified;
+        session.user.name = token.name;
+        session.user.email = token.email || "";
       }
       return session;
     },

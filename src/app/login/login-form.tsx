@@ -8,13 +8,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { LoginSchema } from "@/lib/schemas";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { KeyRound } from "lucide-react";
+import { KeyRound, Eye, EyeOff } from "lucide-react";
 
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // If redirect path is specified in URL (e.g. from middleware), redirect back there
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
@@ -109,13 +110,26 @@ export default function LoginForm() {
                 Forgot password?
               </Link>
             </div>
-            <input
-              type="password"
-              disabled={isLoading}
-              placeholder="••••••••"
-              className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
-              {...register("password")}
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                disabled={isLoading}
+                placeholder="••••••••"
+                className="w-full bg-white border border-border rounded-md pl-3 pr-10 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                {...register("password")}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-charcoal focus:outline-none"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
             {errors.password && (
               <p className="text-red-500 text-xs mt-0.5">{errors.password.message as string}</p>
             )}

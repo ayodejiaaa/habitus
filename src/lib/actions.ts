@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { auth, signOut } from "@/auth";
+import { auth, signOut, unstable_update } from "@/auth";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { 
@@ -226,6 +226,14 @@ export async function updateProfile(values: any) {
     await db.user.update({
       where: { id: session.user.id },
       data: { name, email },
+    });
+
+    // Update NextAuth session cookie immediately
+    await unstable_update({
+      user: {
+        name,
+        email,
+      }
     });
 
     revalidatePath("/dashboard/settings");
