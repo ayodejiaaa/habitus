@@ -9,7 +9,6 @@ export const authConfig = {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const role = (auth?.user as any)?.role;
-      const isEmailVerified = !!(auth?.user as any)?.emailVerified;
       
       const isDashboard = nextUrl.pathname.startsWith("/dashboard");
       const isAdmin = nextUrl.pathname.startsWith("/admin");
@@ -17,11 +16,6 @@ export const authConfig = {
 
       if (isDashboard || isAdmin) {
         if (!isLoggedIn) return false;
-        
-        // Restrict unverified accounts
-        if (!isEmailVerified) {
-          return Response.redirect(new URL("/verify-email/pending", nextUrl));
-        }
 
         if (isAdmin && role !== "ADMIN") {
           return Response.redirect(new URL("/dashboard", nextUrl));
@@ -31,14 +25,10 @@ export const authConfig = {
       
       if (isAuthPage) {
         if (isLoggedIn) {
-          if (isEmailVerified) {
-            if (role === "ADMIN") {
-              return Response.redirect(new URL("/admin", nextUrl));
-            }
-            return Response.redirect(new URL("/dashboard", nextUrl));
-          } else {
-            return Response.redirect(new URL("/verify-email/pending", nextUrl));
+          if (role === "ADMIN") {
+            return Response.redirect(new URL("/admin", nextUrl));
           }
+          return Response.redirect(new URL("/dashboard", nextUrl));
         }
         return true;
       }
@@ -48,3 +38,4 @@ export const authConfig = {
   },
   providers: [], // Empty array, configured in auth.ts
 } satisfies NextAuthConfig;
+

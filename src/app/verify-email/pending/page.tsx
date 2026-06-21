@@ -4,12 +4,30 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PendingForm from "./pending-form";
 import { MailOpen } from "lucide-react";
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Verify Email",
 };
 
-export default function VerifyEmailPendingPage() {
+export default async function VerifyEmailPendingPage() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  // If already verified in the DB, send to dashboard directly
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { emailVerified: true },
+  });
+
+  if (user?.emailVerified) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-brand-bg">
       <Navbar />
@@ -38,3 +56,4 @@ export default function VerifyEmailPendingPage() {
     </div>
   );
 }
+
