@@ -18,11 +18,32 @@ export function logSecurity(
     | "VERIFICATION_EMAIL_SENT"
     | "VERIFICATION_SUCCESSFUL"
     | "VERIFICATION_FAILED"
-    | "VERIFICATION_RESENT",
-  details: { email: string; reason?: string; ip?: string; tokenId?: string }
+    | "VERIFICATION_RESENT"
+    | "UNAUTHORIZED_ACCESS_ATTEMPT",
+  details: { 
+    email?: string; 
+    userId?: string; 
+    resourceType?: string; 
+    resourceId?: string; 
+    reason?: string; 
+    ip?: string; 
+    tokenId?: string 
+  }
 ) {
   const timestamp = new Date().toISOString();
-  const logMessage = `[SECURITY LOG] [${timestamp}] Action: ${action} | UserEmail: ${details.email} | IP: ${details.ip || "unknown"} | TokenId: ${details.tokenId || "N/A"}${
+  const logMessage = `[SECURITY LOG] [${timestamp}] Action: ${action}${
+    details.userId ? ` | UserId: ${details.userId}` : ""
+  }${
+    details.email ? ` | UserEmail: ${details.email}` : ""
+  }${
+    details.resourceType ? ` | ResourceType: ${details.resourceType}` : ""
+  }${
+    details.resourceId ? ` | ResourceId: ${details.resourceId}` : ""
+  }${
+    details.ip ? ` | IP: ${details.ip}` : ""
+  }${
+    details.tokenId ? ` | TokenId: ${details.tokenId}` : ""
+  }${
     details.reason ? ` | Reason: ${details.reason}` : ""
   }`;
   console.log(logMessage);

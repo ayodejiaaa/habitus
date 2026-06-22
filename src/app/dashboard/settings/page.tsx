@@ -1,24 +1,33 @@
 import type { Metadata } from "next";
-import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import SettingsForm from "@/components/SettingsForm";
+import { requireAuthenticatedUser, AuthorizationError } from "@/lib/access-policy";
+import SecurityErrorPage from "@/components/SecurityErrorPage";
 
 export const metadata: Metadata = {
   title: "Settings",
 };
 
 export default async function SettingsPage() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-  });
-
-  if (!user) {
+  let dbUser;
+  try {
+    const user = await requireAuthenticatedUser();
+    dbUser = await db.user.findUnique({
+      where: { id: user.id },
+    });
+    if (!dbUser) {
+      redirect("/login");
+    }
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      if (error.code === "UNAUTHENTICATED") {
+        return <SecurityErrorPage type="UNAUTHENTICATED" />;
+      }
+      if (error.code === "UNAUTHORIZED") {
+        return <SecurityErrorPage type="UNAUTHORIZED" />;
+      }
+    }
     redirect("/login");
   }
 
@@ -32,10 +41,10 @@ export default async function SettingsPage() {
 
       <SettingsForm 
         initialUser={{ 
-          name: user.name, 
-          email: user.email,
-          emailAuditReports: user.emailAuditReports,
-          statusChangeAlerts: user.statusChangeAlerts
+          name: dbUser.name, 
+          email: dbUser.email,
+          emailAuditReports: dbUser.emailAuditReports,
+          statusChangeAlerts: dbUser.statusChangeAlerts
         }} 
       />
     </div>

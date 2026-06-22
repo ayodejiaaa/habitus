@@ -1,19 +1,28 @@
 import type { Metadata } from "next";
-import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import React, { Suspense } from "react";
 import ReportBuilderForm from "@/components/ReportBuilderForm";
+import { requireAuthenticatedUser, requireAdminAccess, AuthorizationError } from "@/lib/access-policy";
+import SecurityErrorPage from "@/components/SecurityErrorPage";
 
 export const metadata: Metadata = {
   title: "Admin Reports",
 };
 
 export default async function AdminReportsPage() {
-  const session = await auth();
-  const role = (session?.user as any)?.role;
-
-  if (!session?.user || role !== "ADMIN") {
+  try {
+    const user = await requireAuthenticatedUser();
+    await requireAdminAccess(user);
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      if (error.code === "UNAUTHENTICATED") {
+        return <SecurityErrorPage type="UNAUTHENTICATED" />;
+      }
+      if (error.code === "UNAUTHORIZED") {
+        return <SecurityErrorPage type="UNAUTHORIZED" />;
+      }
+    }
     redirect("/login");
   }
 

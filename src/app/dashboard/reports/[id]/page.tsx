@@ -5,6 +5,8 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Calendar, ShieldCheck, AlertCircle, AlertOctagon, HelpCircle } from "lucide-react";
+import { requireAuthenticatedUser, requireReportAccess, AuthorizationError } from "@/lib/access-policy";
+import SecurityErrorPage from "@/components/SecurityErrorPage";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -12,23 +14,36 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { title: "Authentication Required | Habitus" };
+    }
+
     const { id } = await params;
     const report = await db.inspectionReport.findUnique({
       where: { id },
       select: {
         request: {
           select: {
+            userId: true,
             projectName: true,
           },
         },
       },
     });
-    if (!report?.request?.projectName) {
-      return { title: "Report Details" };
+
+    if (!report) {
+      return { title: "Report Details | Habitus" };
     }
-    return { title: `Report: ${report.request.projectName}` };
+
+    const isAuthorized = (session.user as any).role === "ADMIN" || report.request.userId === session.user.id;
+    if (!isAuthorized) {
+      return { title: "Access Denied | Habitus" };
+    }
+
+    return { title: `Report: ${report.request.projectName} | Habitus` };
   } catch (error) {
-    return { title: "Report Details" };
+    return { title: "Report Details | Habitus" };
   }
 }
 
@@ -53,30 +68,25 @@ function getEmbedUrl(url: string) {
 }
 
 export default async function ReportDetailPage({ params }: PageProps) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-
   const { id } = await params;
 
-  // Query report details
-  const report = await db.inspectionReport.findUnique({
-    where: { id },
-    include: {
-      request: true,
-      mediaAssets: true,
-    },
-  });
+  let report;
+  let isAdmin = false;
 
-  if (!report) {
+  try {
+    const user = await requireAuthenticatedUser();
+    isAdmin = user.role === "ADMIN";
+    report = await requireReportAccess(id, user);
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      if (error.code === "UNAUTHENTICATED") {
+        return <SecurityErrorPage type="UNAUTHENTICATED" />;
+      }
+      if (error.code === "UNAUTHORIZED") {
+        return <SecurityErrorPage type="UNAUTHORIZED" />;
+      }
+    }
     notFound();
-  }
-
-  // Double check authorization: Client can only read their own reports
-  const isAdmin = (session.user as any).role === "ADMIN";
-  if (!isAdmin && report.request.userId !== session.user.id) {
-    redirect("/dashboard");
   }
 
   const findingsList = report.findings.split("\n").filter((line) => line.trim() !== "");
