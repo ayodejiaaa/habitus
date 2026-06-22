@@ -16,10 +16,10 @@ export default async function AdminLayout({
     // Fetch emailVerified status directly from database to avoid stale cookie values
     const dbUser = await db.user.findUnique({
       where: { id: user.id },
-      select: { emailVerified: true },
+      select: { emailVerified: true, role: true },
     });
 
-    if (!dbUser?.emailVerified) {
+    if (!dbUser?.emailVerified && dbUser?.role !== "ADMIN") {
       redirect("/verify-email/pending");
     }
 
