@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { signOut } from "next-auth/react";
 import { 
   LayoutDashboard, 
   ClipboardList, 
@@ -75,9 +76,7 @@ export default function DashboardSidebar({ role }: SidebarProps) {
       {/* Footer / Sign Out */}
       <div className="p-4 border-t border-border">
         <button
-          onClick={() => {
-            import("next-auth/react").then((mod) => mod.signOut({ callbackUrl: "/" }));
-          }}
+          onClick={() => signOut({ callbackUrl: "/" })}
           className="w-full flex items-center space-x-3 px-4 py-3 rounded-md text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
         >
           <LogOut className="h-5 w-5" />
