@@ -64,7 +64,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         try {
           const dbUser = await db.user.findUnique({
             where: { id: token.id as string },
-            select: { passwordVersion: true, emailVerified: true, name: true, email: true },
+            select: { passwordVersion: true, emailVerified: true, name: true, email: true, role: true },
           });
           if (!dbUser || dbUser.passwordVersion !== token.passwordVersion) {
             return {}; // returning empty token invalidates session
@@ -72,6 +72,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
           token.emailVerified = dbUser.emailVerified;
           token.name = dbUser.name;
           token.email = dbUser.email;
+          token.role = dbUser.role;
         } catch (error) {
           console.error("JWT validation database error:", error);
         }
