@@ -45,6 +45,19 @@ enum AssetType {
   VIDEO
 }
 
+enum StorageProvider {
+  GOOGLE_DRIVE
+  YOUTUBE
+  VIMEO
+  S3
+  R2
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
 model User {
   id                  String               @id @default(cuid())
   name                String?
@@ -101,12 +114,17 @@ model InspectionReport {
 }
 
 model MediaAsset {
-  id          String            @id @default(cuid())
-  reportId    String
-  report      InspectionReport  @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  type        AssetType
-  url         String
-  createdAt   DateTime          @default(now())
+  id                String            @id @default(cuid())
+  reportId          String
+  report            InspectionReport  @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  storageProvider   StorageProvider
+  originalFileName  String?
+  displayName       String?
+  mediaType         MediaType
+  trustedUrl        String
+  uploadedBy        String?
+  uploadedAt        DateTime          @default(now())
+  checksum          String?
 }
 
 model InspectionService {

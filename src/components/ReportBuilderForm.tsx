@@ -8,7 +8,8 @@ import { InspectionReportSchema } from "@/lib/schemas";
 import { publishInspectionReport } from "@/lib/actions";
 import { Button } from "./ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
-import { FileText, Save, Info } from "lucide-react";
+import { FileText, Save, Info, Link2, Trash2, PlayCircle, Image as ImageIcon, AlertCircle } from "lucide-react";
+import { validateMediaUrl } from "@/lib/media/validators";
 
 interface RequestItem {
   id: string;
@@ -31,8 +32,9 @@ export default function ReportBuilderForm({ requests }: ReportBuilderFormProps) 
   // Pre-select request from search param if available
   const defaultRequestId = searchParams.get("request") || (requests[0]?.id ?? "");
 
-  const [photoUrls, setPhotoUrls] = useState("");
-  const [videoUrls, setVideoUrls] = useState("");
+  const [mediaAssets, setMediaAssets] = useState<any[]>([]);
+  const [mediaUrlInput, setMediaUrlInput] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const {
     register,
@@ -56,23 +58,6 @@ export default function ReportBuilderForm({ requests }: ReportBuilderFormProps) 
     setError(null);
     setSuccess(null);
 
-    // Parse photos and videos
-    const mediaAssets: any[] = [];
-    
-    photoUrls.split("\n").forEach((url) => {
-      const trimmed = url.trim();
-      if (trimmed.startsWith("http")) {
-        mediaAssets.push({ type: "PHOTO", url: trimmed });
-      }
-    });
-
-    videoUrls.split("\n").forEach((url) => {
-      const trimmed = url.trim();
-      if (trimmed.startsWith("http")) {
-        mediaAssets.push({ type: "VIDEO", url: trimmed });
-      }
-    });
-
     const payload = {
       ...data,
       mediaAssets,
@@ -86,8 +71,8 @@ export default function ReportBuilderForm({ requests }: ReportBuilderFormProps) 
     } else {
       setSuccess("Inspection report published successfully!");
       reset();
-      setPhotoUrls("");
-      setVideoUrls("");
+      setMediaAssets([]);
+      setMediaUrlInput("");
       // Refresh to update available projects in the list
       router.refresh();
       // Redirect to requests after 1.5 seconds
@@ -95,6 +80,40 @@ export default function ReportBuilderForm({ requests }: ReportBuilderFormProps) 
         router.push("/admin/requests");
       }, 1500);
     }
+  };
+
+  const handleAddMedia = () => {
+    setValidationError(null);
+    const trimmed = mediaUrlInput.trim();
+    if (!trimmed) return;
+
+    const validation = validateMediaUrl(trimmed);
+    if (!validation.isValid || !validation.cleanUrl || !validation.storageProvider || !validation.mediaType) {
+      setValidationError(validation.error || "Invalid URL or untrusted media domain.");
+      return;
+    }
+
+    if (mediaAssets.some((asset) => asset.trustedUrl === validation.cleanUrl)) {
+      setValidationError("This media link is already added.");
+      return;
+    }
+
+    const filename = trimmed.split("/").pop()?.split("?")[0] || "unnamed_asset";
+
+    const newAsset = {
+      storageProvider: validation.storageProvider,
+      mediaType: validation.mediaType,
+      trustedUrl: validation.cleanUrl,
+      originalFileName: filename,
+      displayName: filename,
+    };
+
+    setMediaAssets([...mediaAssets, newAsset]);
+    setMediaUrlInput("");
+  };
+
+  const handleRemoveMedia = (index: number) => {
+    setMediaAssets(mediaAssets.filter((_, i) => i !== index));
   };
 
   return (
@@ -207,32 +226,86 @@ export default function ReportBuilderForm({ requests }: ReportBuilderFormProps) 
               )}
             </div>
 
-            {/* Photo Evidence Paste */}
-            <div className="space-y-1">
-              <label className="text-xs font-bold uppercase text-gray-500">Photo Evidence URLs (one URL per line)</label>
-              <textarea
-                rows={3}
-                disabled={isLoading}
-                placeholder="e.g. https://images.unsplash.com/photo-1541888946425-d81bb19240f5"
-                value={photoUrls}
-                onChange={(e) => setPhotoUrls(e.target.value)}
-                className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none disabled:opacity-50"
-              />
-              <p className="text-[10px] text-gray-400">Enter links to photos stored in cloud buckets or hosted online.</p>
-            </div>
+            {/* Media Selector Component */}
+            <div className="space-y-4 border border-border rounded-xl p-5 bg-brand-bg/10">
+              <div className="space-y-1">
+                <label className="text-xs font-bold uppercase text-charcoal flex items-center gap-1.5">
+                  <Link2 className="h-4 w-4 text-primary" />
+                  Attach Media Evidence (Google Drive, YouTube, Vimeo)
+                </label>
+                <div className="flex gap-2 pt-1">
+                  <input
+                    type="text"
+                    disabled={isLoading}
+                    value={mediaUrlInput}
+                    onChange={(e) => {
+                      setMediaUrlInput(e.target.value);
+                      if (validationError) setValidationError(null);
+                    }}
+                    placeholder="Paste sharing link (e.g. Google Drive file link, YouTube/Vimeo video link)"
+                    className="flex-1 bg-white border border-border rounded-md px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isLoading || !mediaUrlInput}
+                    onClick={handleAddMedia}
+                    className="font-bold border border-border bg-white text-charcoal hover:bg-gray-50 text-xs animate-in fade-in duration-200"
+                  >
+                    Attach
+                  </Button>
+                </div>
+                {validationError && (
+                  <p className="text-red-500 text-[10px] font-semibold mt-1 flex items-center gap-1 animate-in fade-in duration-100">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    {validationError}
+                  </p>
+                )}
+                <p className="text-[9px] text-gray-400 leading-relaxed pt-1">
+                  Security policy: Paste Google Drive file links, YouTube watch links, or Vimeo video links. Arbitrary domains are blocked.
+                </p>
+              </div>
 
-            {/* Video Evidence Paste */}
-            <div className="space-y-1">
-              <label className="text-xs font-bold uppercase text-gray-500">Video Evidence URLs (one URL per line)</label>
-              <textarea
-                rows={3}
-                disabled={isLoading}
-                placeholder="e.g. https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-                value={videoUrls}
-                onChange={(e) => setVideoUrls(e.target.value)}
-                className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none disabled:opacity-50"
-              />
-              <p className="text-[10px] text-gray-400">Supports YouTube, Vimeo, or direct video logs.</p>
+              {/* Selected Assets List */}
+              {mediaAssets.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-border/60">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                    Attached Evidence Items ({mediaAssets.length})
+                  </span>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {mediaAssets.map((asset, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between gap-3 bg-white border border-border p-2 rounded-lg text-xs animate-in slide-in-from-bottom-2 duration-200"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          {asset.mediaType === "IMAGE" ? (
+                            <ImageIcon className="h-4 w-4 text-primary shrink-0" />
+                          ) : (
+                            <PlayCircle className="h-4 w-4 text-accent shrink-0" />
+                          )}
+                          <div className="min-w-0">
+                            <span className="font-bold text-charcoal truncate block">
+                              {asset.displayName}
+                            </span>
+                            <span className="text-[9px] text-gray-400 uppercase font-mono block">
+                              {asset.storageProvider} • {asset.mediaType}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={isLoading}
+                          onClick={() => handleRemoveMedia(index)}
+                          className="text-gray-400 hover:text-red-600 p-1 rounded hover:bg-gray-50 focus:outline-none"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <Button type="submit" disabled={isLoading} className="font-bold flex items-center gap-2">

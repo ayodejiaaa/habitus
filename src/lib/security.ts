@@ -19,7 +19,11 @@ export function logSecurity(
     | "VERIFICATION_SUCCESSFUL"
     | "VERIFICATION_FAILED"
     | "VERIFICATION_RESENT"
-    | "UNAUTHORIZED_ACCESS_ATTEMPT",
+    | "UNAUTHORIZED_ACCESS_ATTEMPT"
+    | "EVIDENCE_SUBMITTED"
+    | "EVIDENCE_ATTACHED"
+    | "EVIDENCE_PUBLISHED"
+    | "INVALID_MEDIA_BLOCKED",
   details: { 
     email?: string; 
     userId?: string; 

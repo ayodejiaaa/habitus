@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Calendar, ShieldCheck, AlertCircle, AlertOctagon, HelpCircle } from "lucide-react";
 import { requireAuthenticatedUser, requireReportAccess, AuthorizationError } from "@/lib/access-policy";
 import SecurityErrorPage from "@/components/SecurityErrorPage";
+import { validateMediaUrl } from "@/lib/media/validators";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -47,25 +48,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-function getEmbedUrl(url: string) {
-  if (url.includes("youtube.com") || url.includes("youtu.be")) {
-    let videoId = "";
-    if (url.includes("youtu.be/")) {
-      videoId = url.split("youtu.be/")[1]?.split(/[?#]/)[0];
-    } else if (url.includes("embed/")) {
-      videoId = url.split("embed/")[1]?.split(/[?#]/)[0];
-    } else {
-      const match = url.match(/[?&]v=([^&#]+)/);
-      videoId = match ? match[1] : "";
-    }
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
-  }
-  if (url.includes("vimeo.com")) {
-    const videoId = url.split("vimeo.com/")[1]?.split(/[?#]/)[0];
-    return videoId ? `https://player.vimeo.com/video/${videoId}` : null;
-  }
-  return null;
-}
+
 
 export default async function ReportDetailPage({ params }: PageProps) {
   const { id } = await params;
@@ -153,8 +136,8 @@ export default async function ReportDetailPage({ params }: PageProps) {
   const recDetails = getRecommendationLabel(report.recommendation);
   const AssessmentIcon = assessment.icon;
 
-  const photos = report.mediaAssets.filter((asset) => asset.type === "PHOTO");
-  const videos = report.mediaAssets.filter((asset) => asset.type === "VIDEO");
+  const photos = report.mediaAssets.filter((asset) => asset.mediaType === "IMAGE");
+  const videos = report.mediaAssets.filter((asset) => asset.mediaType === "VIDEO");
 
   return (
     <div className="space-y-8 pb-16">
@@ -276,19 +259,30 @@ export default async function ReportDetailPage({ params }: PageProps) {
             <p className="text-xs text-gray-400 bg-gray-50 p-4 rounded text-center">No photo evidence uploaded.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {photos.map((photo) => (
-                <div key={photo.id} className="relative rounded-lg overflow-hidden border border-border group bg-gray-50">
-                  {/* Since url is a mock or external link, we use a standard HTML img */}
-                  <img
-                    src={photo.url.startsWith("http") ? photo.url : "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=500&q=80"}
-                    alt="Construction site evidence"
-                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-200"
-                  />
-                  <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white p-2 text-center text-[10px] font-bold">
-                    Site Capture Log
+              {photos.map((photo) => {
+                const isTrusted = validateMediaUrl(photo.trustedUrl).isValid;
+                return (
+                  <div key={photo.id} className="relative rounded-lg overflow-hidden border border-border group bg-gray-50 flex flex-col justify-center min-h-[12rem]">
+                    {isTrusted ? (
+                      <>
+                        <img
+                          src={photo.trustedUrl}
+                          alt={photo.displayName || "Construction site evidence"}
+                          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                        <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white p-2 text-center text-[10px] font-bold">
+                          {photo.displayName || "Site Capture Log"}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-6 text-center h-48 bg-gray-50 border border-red-100 rounded-lg">
+                        <AlertOctagon className="h-6 w-6 text-red-400 mb-1.5 shrink-0" />
+                        <span className="text-xs font-bold text-gray-500">This evidence is currently unavailable.</span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -301,29 +295,22 @@ export default async function ReportDetailPage({ params }: PageProps) {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {videos.map((vid) => {
-                const embedUrl = getEmbedUrl(vid.url);
+                const isTrusted = validateMediaUrl(vid.trustedUrl).isValid;
                 return (
                   <div key={vid.id} className="space-y-2">
-                    {embedUrl ? (
+                    {isTrusted ? (
                       <div className="relative aspect-video rounded-lg overflow-hidden border border-border bg-black">
                         <iframe
-                          src={embedUrl}
+                          src={vid.trustedUrl}
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                           allowFullScreen
                           className="absolute inset-0 w-full h-full border-0"
                         />
                       </div>
                     ) : (
-                      <div className="bg-gray-50 rounded-lg p-4 border border-border flex flex-col justify-between h-32">
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-gray-400">Direct Video link</span>
-                          <p className="text-xs text-gray-600 truncate mt-1">{vid.url}</p>
-                        </div>
-                        <a href={vid.url} target="_blank" rel="noopener noreferrer">
-                          <Button size="sm" variant="outline" className="w-full">
-                            Open External Video
-                          </Button>
-                        </a>
+                      <div className="flex flex-col items-center justify-center p-6 text-center aspect-video bg-gray-50 border border-red-100 rounded-lg">
+                        <AlertOctagon className="h-6 w-6 text-red-400 mb-1.5 shrink-0" />
+                        <span className="text-xs font-bold text-gray-500">This evidence is currently unavailable.</span>
                       </div>
                     )}
                   </div>

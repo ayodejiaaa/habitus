@@ -55,8 +55,12 @@ export const InspectionReportSchema = z.object({
   recommendation: z.enum(["PROCEED", "PROCEED_WITH_CAUTION", "PAUSE_FUNDING"]),
   mediaAssets: z.array(
     z.object({
-      type: z.enum(["PHOTO", "VIDEO"]),
-      url: z.string().url("Must be a valid URL"),
+      storageProvider: z.enum(["GOOGLE_DRIVE", "YOUTUBE", "VIMEO", "S3", "R2"]),
+      mediaType: z.enum(["IMAGE", "VIDEO"]),
+      trustedUrl: z.string().url("Must be a valid URL"),
+      displayName: z.string().optional().nullable(),
+      originalFileName: z.string().optional().nullable(),
+      checksum: z.string().optional().nullable(),
     })
   ).optional(),
 });

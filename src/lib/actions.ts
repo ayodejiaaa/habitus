@@ -174,11 +174,32 @@ export async function publishInspectionReport(values: any) {
         await tx.mediaAsset.createMany({
           data: mediaAssets.map((asset) => ({
             reportId: report.id,
-            type: asset.type,
-            url: asset.url,
+            storageProvider: asset.storageProvider,
+            originalFileName: asset.originalFileName,
+            displayName: asset.displayName,
+            mediaType: asset.mediaType,
+            trustedUrl: asset.trustedUrl,
+            uploadedBy: session?.user?.id || "admin",
+            checksum: asset.checksum,
           })),
         });
+
+        // Log chain-of-custody security events
+        mediaAssets.forEach((asset) => {
+          logSecurity("EVIDENCE_ATTACHED", {
+            userId: session?.user?.id || "admin",
+            resourceType: "MEDIA_ASSET",
+            resourceId: asset.trustedUrl,
+          });
+        });
       }
+
+      // Log report publishing
+      logSecurity("EVIDENCE_PUBLISHED", {
+        userId: session?.user?.id || "admin",
+        resourceType: "REPORT",
+        resourceId: report.id,
+      });
 
       // 3. Update Request Status to REPORT_READY
       await tx.inspectionRequest.update({
