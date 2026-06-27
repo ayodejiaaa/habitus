@@ -7,6 +7,7 @@ import { InspectionRequestSchema } from "@/lib/schemas";
 import { createInspectionRequest } from "@/lib/actions";
 import { Button } from "./ui/button";
 import { X, Plus, ClipboardList, Lock, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ServiceItem {
   id: string;
@@ -65,26 +66,32 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
   const selectedService = services.find((s) => s.id === serviceId);
 
   const onSubmit = async (data: any) => {
-    setIsLoading(true);
-    setError(null);
+    try {
+      setIsLoading(true);
+      setError(null);
 
-    const res = await createInspectionRequest({
-      ...data,
-      paymentStatus: "PAID",
-    });
-    
-    setIsLoading(false);
-    if (res.error) {
-      setError(res.error);
+      const res = await createInspectionRequest({
+        ...data,
+        paymentStatus: "PAID",
+      });
+      
+      setIsLoading(false);
+      if (res.error) {
+        setError(res.error);
+        setStep("payment");
+      } else {
+        setStep("success");
+        reset();
+        // Reset card details
+        setCardName("");
+        setCardNumber("");
+        setCardExpiry("");
+        setCardCvv("");
+      }
+    } catch (err: any) {
+      setIsLoading(false);
+      setError(err?.message || "An unexpected error occurred during submission.");
       setStep("payment");
-    } else {
-      setStep("success");
-      reset();
-      // Reset card details
-      setCardName("");
-      setCardNumber("");
-      setCardExpiry("");
-      setCardCvv("");
     }
   };
 
@@ -117,6 +124,14 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
       }
     }
 
+    // Trigger validation on ALL fields first!
+    const isFormValid = await trigger();
+    if (!isFormValid) {
+      setError("Please check your request details. Some fields are invalid or missing.");
+      setStep("details"); // Go back to details page to show validation errors
+      return;
+    }
+
     setStep("processing");
 
     // Cycle through simulated loading states
@@ -127,7 +142,12 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
         const amt = selectedService ? `₦${selectedService.price.toLocaleString()}` : "₦350,000";
         setPaymentStatusText(`Authorizing ${amt} charge...`);
         setTimeout(async () => {
-          await handleSubmit(onSubmit)();
+          try {
+            await handleSubmit(onSubmit)();
+          } catch (err: any) {
+            setError(err?.message || "Payment submission failed.");
+            setStep("payment");
+          }
         }, 800);
       }, 800);
     }, 800);
@@ -211,8 +231,7 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
             )}
 
             {/* Step: Service Selection */}
-            {step === "service" && (
-              <div className="space-y-6">
+            <div className={cn("space-y-6", step !== "service" && "hidden")}>
                 <div className="space-y-1">
                   <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Choose an Inspection Phase</h4>
                   <p className="text-xs text-gray-500">
@@ -298,10 +317,9 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
                   </Button>
                 </div>
               </div>
-            )}
 
             {/* Step: Details Form */}
-            {step === "details" && (
+            <div className={cn(step !== "details" && "hidden")}>
               <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
                 {error && (
                   <div className="bg-red-50 text-red-700 text-xs font-semibold p-3 rounded border border-red-200">
@@ -515,10 +533,10 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
                   </Button>
                 </div>
               </form>
-            )}
+            </div>
 
             {/* Step: Payment Gateway Checkout */}
-            {step === "payment" && (
+            <div className={cn(step !== "payment" && "hidden")}>
               <form onSubmit={handleSimulatedPayment} className="space-y-6">
                 {error && (
                   <div className="bg-red-50 text-red-700 text-xs font-semibold p-3 rounded border border-red-200">
@@ -657,7 +675,7 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
                   </Button>
                 </div>
               </form>
-            )}
+            </div>
           </div>
         </div>
       )}
