@@ -15,7 +15,7 @@ import {
 import { RequestStatus } from "@prisma/client";
 
 import { generateVerificationToken } from "./tokens";
-import { sendEmailVerificationEmail } from "./email";
+import { sendEmailVerificationEmail, sendReportIssuedEmail } from "./email";
 import { logSecurity } from "./security";
 import { rateLimitVerification } from "./rate-limit";
 
@@ -154,20 +154,51 @@ export async function publishInspectionReport(values: any) {
       return { error: "Invalid form input." };
     }
 
-    const { requestId, assessmentStatus, executiveSummary, findings, recommendation, mediaAssets } = validated.data;
+    const { requestId, assessmentStatus, executiveSummary, findings, recommendation, status = "DRAFT", mediaAssets } = validated.data;
 
-    // Transaction to create report, add assets, and update request status
-    await db.$transaction(async (tx) => {
-      // 1. Create Report
-      const report = await tx.inspectionReport.create({
-        data: {
-          requestId,
-          assessmentStatus,
-          executiveSummary,
-          findings,
-          recommendation,
-        },
+    // Transaction to create/update report, add assets, and update request status
+    const result = await db.$transaction(async (tx) => {
+      // Check if report already exists
+      const existingReport = await tx.inspectionReport.findUnique({
+        where: { requestId },
+        include: { request: { include: { user: true } } },
       });
+
+      if (existingReport && existingReport.status === "ISSUED") {
+        throw new Error("This report has already been issued and cannot be modified.");
+      }
+
+      let report;
+      if (existingReport) {
+        // 1. Update Report
+        report = await tx.inspectionReport.update({
+          where: { id: existingReport.id },
+          data: {
+            assessmentStatus,
+            executiveSummary,
+            findings,
+            recommendation,
+            status: status as any,
+          },
+        });
+
+        // Delete old media assets to replace with new ones
+        await tx.mediaAsset.deleteMany({
+          where: { reportId: report.id },
+        });
+      } else {
+        // 1. Create Report
+        report = await tx.inspectionReport.create({
+          data: {
+            requestId,
+            assessmentStatus,
+            executiveSummary,
+            findings,
+            recommendation,
+            status: status as any,
+          },
+        });
+      }
 
       // 2. Add Media Assets if any
       if (mediaAssets && mediaAssets.length > 0) {
@@ -194,28 +225,61 @@ export async function publishInspectionReport(values: any) {
         });
       }
 
-      // Log report publishing
-      logSecurity("EVIDENCE_PUBLISHED", {
-        userId: session?.user?.id || "admin",
-        resourceType: "REPORT",
-        resourceId: report.id,
+      // Log report publishing / saving draft
+      if (status === "ISSUED") {
+        logSecurity("EVIDENCE_PUBLISHED", {
+          userId: session?.user?.id || "admin",
+          resourceType: "REPORT",
+          resourceId: report.id,
+        });
+
+        // 3. Update Request Status to REPORT_READY
+        await tx.inspectionRequest.update({
+          where: { id: requestId },
+          data: { status: "REPORT_READY" },
+        });
+      } else {
+        // Update Request Status to IN_PROGRESS when saved as draft
+        await tx.inspectionRequest.update({
+          where: { id: requestId },
+          data: { status: "IN_PROGRESS" },
+        });
+      }
+
+      // Fetch request details for email trigger if we are issuing the report
+      const requestWithUser = await tx.inspectionRequest.findUnique({
+        where: { id: requestId },
+        include: { user: true },
       });
 
-      // 3. Update Request Status to REPORT_READY
-      await tx.inspectionRequest.update({
-        where: { id: requestId },
-        data: { status: "REPORT_READY" },
-      });
+      return { report, request: requestWithUser };
     });
+
+    // If report is issued, trigger email notification to the client
+    if (status === "ISSUED" && result.request?.user?.email) {
+      const appUrl = process.env.APP_URL || "http://localhost:3000";
+      const reportLink = `${appUrl}/dashboard/reports`;
+      // Send email (async, non-blocking)
+      sendReportIssuedEmail(
+        result.request.user.email,
+        result.request.projectName,
+        reportLink
+      ).catch((err) => console.error("Error sending report issued email:", err));
+    }
 
     revalidatePath("/admin/requests");
     revalidatePath("/admin/reports");
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/reports");
-    return { success: "Inspection report published successfully!" };
-  } catch (error) {
-    console.error("Publish report error:", error);
-    return { error: "Failed to publish report." };
+    
+    return { 
+      success: status === "ISSUED" 
+        ? "Inspection report issued successfully and client notified!" 
+        : "Inspection report draft saved successfully!" 
+    };
+  } catch (error: any) {
+    console.error("Publish/Draft report error:", error);
+    return { error: error?.message || "Failed to save/issue report." };
   }
 }
 

@@ -73,17 +73,30 @@ export default async function AdminRequestsPage() {
                     </span>
                   </div>
                 </div>
-
                 {/* Status management controls */}
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-gray-500 font-bold uppercase">Update Status:</span>
-                  <StatusSelect requestId={req.id} currentStatus={req.status} />
-                  {req.reports.length === 0 && (
+                  <StatusSelect 
+                    requestId={req.id} 
+                    currentStatus={req.status} 
+                    isReportIssued={req.reports.some(r => r.status === "ISSUED")} 
+                  />
+                  {req.reports.length === 0 ? (
                     <Link href={`/admin/reports?request=${req.id}`}>
-                      <Button size="sm" className="font-bold flex items-center gap-1.5 bg-accent text-white hover:bg-accent-hover">
+                      <Button size="sm" className="font-bold flex items-center gap-1.5 bg-accent text-white hover:bg-accent-hover cursor-pointer">
                         <FileCheck className="h-3.5 w-3.5" /> Build Report
                       </Button>
                     </Link>
+                  ) : req.reports[0].status === "DRAFT" ? (
+                    <Link href={`/admin/reports?request=${req.id}`}>
+                      <Button size="sm" className="font-bold flex items-center gap-1.5 bg-amber-500 text-white hover:bg-amber-600 cursor-pointer">
+                        <FileCheck className="h-3.5 w-3.5" /> Edit Draft
+                      </Button>
+                    </Link>
+                  ) : (
+                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-md flex items-center gap-1.5">
+                      <FileCheck className="h-3.5 w-3.5" /> Issued
+                    </span>
                   )}
                 </div>
               </div>

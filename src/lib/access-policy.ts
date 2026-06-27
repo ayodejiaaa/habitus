@@ -59,7 +59,7 @@ export async function requireReportAccess(reportId: string, user: { id: string; 
     throw new AuthorizationError("NOT_FOUND", "Resource not found.");
   }
 
-  const isAuthorized = user.role === "ADMIN" || report.request.userId === user.id;
+  const isAuthorized = user.role === "ADMIN" || (report.request.userId === user.id && report.status === "ISSUED");
   if (!isAuthorized) {
     logUnauthorizedAccess(user.id, "REPORT", reportId);
     throw new AuthorizationError("UNAUTHORIZED", "You do not have permission to access this resource.");

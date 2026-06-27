@@ -58,6 +58,11 @@ enum MediaType {
   VIDEO
 }
 
+enum ReportStatus {
+  DRAFT
+  ISSUED
+}
+
 model User {
   id                  String               @id @default(cuid())
   name                String?
@@ -108,6 +113,7 @@ model InspectionReport {
   executiveSummary  String
   findings          String             // Stored as a newline-separated string
   recommendation    RecommendationStatus
+  status            ReportStatus       @default(DRAFT)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   mediaAssets       MediaAsset[]

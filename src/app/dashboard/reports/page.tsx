@@ -25,6 +25,7 @@ export default async function ReportsPage() {
       request: {
         userId,
       },
+      status: "ISSUED",
     },
     include: {
       request: true,

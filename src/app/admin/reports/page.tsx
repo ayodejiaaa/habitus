@@ -26,18 +26,41 @@ export default async function AdminReportsPage() {
     redirect("/login");
   }
 
-  // Fetch requests that do not have reports yet, so we can compile reports for them
-  const requestsWithoutReports = await db.inspectionRequest.findMany({
+  // Fetch requests that either have no reports OR have a draft report
+  const requestsWithDraftsOrNoReports = await db.inspectionRequest.findMany({
     where: {
-      reports: {
-        none: {},
-      },
+      OR: [
+        { reports: { none: {} } },
+        { reports: { some: { status: "DRAFT" } } }
+      ]
     },
     select: {
       id: true,
       projectName: true,
       city: true,
       country: true,
+      reports: {
+        where: { status: "DRAFT" },
+        select: {
+          id: true,
+          assessmentStatus: true,
+          executiveSummary: true,
+          findings: true,
+          recommendation: true,
+          status: true,
+          mediaAssets: {
+            select: {
+              id: true,
+              storageProvider: true,
+              mediaType: true,
+              trustedUrl: true,
+              displayName: true,
+              originalFileName: true,
+              checksum: true,
+            }
+          }
+        }
+      }
     },
     orderBy: { createdAt: "desc" },
   });
@@ -51,7 +74,7 @@ export default async function AdminReportsPage() {
       </div>
 
       <Suspense fallback={<div className="text-sm text-gray-400">Loading form builder...</div>}>
-        <ReportBuilderForm requests={requestsWithoutReports} />
+        <ReportBuilderForm requests={requestsWithDraftsOrNoReports as any} />
       </Suspense>
     </div>
   );

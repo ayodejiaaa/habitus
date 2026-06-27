@@ -53,6 +53,7 @@ export const InspectionReportSchema = z.object({
   executiveSummary: z.string().min(10, "Summary must be at least 10 characters"),
   findings: z.string().min(5, "Findings are required (one per line)"),
   recommendation: z.enum(["PROCEED", "PROCEED_WITH_CAUTION", "PAUSE_FUNDING"]),
+  status: z.enum(["DRAFT", "ISSUED"]).optional(),
   mediaAssets: z.array(
     z.object({
       storageProvider: z.enum(["GOOGLE_DRIVE", "YOUTUBE", "VIMEO", "S3", "R2"]),

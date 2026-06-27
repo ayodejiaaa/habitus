@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,6 +16,23 @@ interface RequestItem {
   projectName: string;
   city: string;
   country: string;
+  reports?: Array<{
+    id: string;
+    assessmentStatus: "ON_TRACK" | "NEEDS_ATTENTION" | "ISSUE_DETECTED";
+    executiveSummary: string;
+    findings: string;
+    recommendation: "PROCEED" | "PROCEED_WITH_CAUTION" | "PAUSE_FUNDING";
+    status: "DRAFT" | "ISSUED";
+    mediaAssets: Array<{
+      id: string;
+      storageProvider: "GOOGLE_DRIVE" | "YOUTUBE" | "VIMEO" | "S3" | "R2";
+      mediaType: "IMAGE" | "VIDEO";
+      trustedUrl: string;
+      displayName: string | null;
+      originalFileName: string | null;
+      checksum: string | null;
+    }>;
+  }>;
 }
 
 interface ReportBuilderFormProps {
@@ -32,6 +49,7 @@ export default function ReportBuilderForm({ requests }: ReportBuilderFormProps) 
   // Pre-select request from search param if available
   const defaultRequestId = searchParams.get("request") || (requests[0]?.id ?? "");
 
+  const [submitStatus, setSubmitStatus] = useState<"DRAFT" | "ISSUED">("DRAFT");
   const [mediaAssets, setMediaAssets] = useState<any[]>([]);
   const [mediaUrlInput, setMediaUrlInput] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -41,6 +59,7 @@ export default function ReportBuilderForm({ requests }: ReportBuilderFormProps) 
     handleSubmit,
     setValue,
     reset,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(InspectionReportSchema),
@@ -53,6 +72,27 @@ export default function ReportBuilderForm({ requests }: ReportBuilderFormProps) 
     },
   });
 
+  const selectedRequestId = watch("requestId");
+
+  useEffect(() => {
+    const selectedReq = requests.find((r) => r.id === selectedRequestId);
+    const draftReport = selectedReq?.reports?.[0];
+
+    if (draftReport && draftReport.status === "DRAFT") {
+      setValue("assessmentStatus", draftReport.assessmentStatus);
+      setValue("executiveSummary", draftReport.executiveSummary);
+      setValue("findings", draftReport.findings);
+      setValue("recommendation", draftReport.recommendation);
+      setMediaAssets(draftReport.mediaAssets || []);
+    } else {
+      setValue("assessmentStatus", "ON_TRACK");
+      setValue("executiveSummary", "");
+      setValue("findings", "");
+      setValue("recommendation", "PROCEED");
+      setMediaAssets([]);
+    }
+  }, [selectedRequestId, requests, setValue]);
+
   const onSubmit = async (data: any) => {
     setIsLoading(true);
     setError(null);
@@ -60,6 +100,7 @@ export default function ReportBuilderForm({ requests }: ReportBuilderFormProps) 
 
     const payload = {
       ...data,
+      status: submitStatus,
       mediaAssets,
     };
 
@@ -69,13 +110,11 @@ export default function ReportBuilderForm({ requests }: ReportBuilderFormProps) 
     if (res.error) {
       setError(res.error);
     } else {
-      setSuccess("Inspection report published successfully!");
+      setSuccess(res.success || "Inspection report saved successfully!");
       reset();
       setMediaAssets([]);
       setMediaUrlInput("");
-      // Refresh to update available projects in the list
       router.refresh();
-      // Redirect to requests after 1.5 seconds
       setTimeout(() => {
         router.push("/admin/requests");
       }, 1500);
@@ -308,9 +347,24 @@ export default function ReportBuilderForm({ requests }: ReportBuilderFormProps) 
               )}
             </div>
 
-            <Button type="submit" disabled={isLoading} className="font-bold flex items-center gap-2">
-              <Save className="h-4 w-4" /> {isLoading ? "Publishing..." : "Publish Report"}
-            </Button>
+            <div className="flex gap-4">
+              <Button 
+                type="submit" 
+                disabled={isLoading} 
+                onClick={() => setSubmitStatus("DRAFT")}
+                className="font-bold flex items-center gap-2 border border-border bg-white text-charcoal hover:bg-gray-50 cursor-pointer"
+              >
+                <Save className="h-4 w-4 text-gray-500" /> {isLoading && submitStatus === "DRAFT" ? "Saving Draft..." : "Save as Draft"}
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isLoading} 
+                onClick={() => setSubmitStatus("ISSUED")}
+                className="font-bold flex items-center gap-2 bg-primary text-white hover:bg-primary/90 cursor-pointer"
+              >
+                <FileText className="h-4 w-4" /> {isLoading && submitStatus === "ISSUED" ? "Issuing..." : "Issue Report"}
+              </Button>
+            </div>
           </form>
         )}
       </CardContent>

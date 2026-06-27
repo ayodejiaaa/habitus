@@ -7,9 +7,10 @@ import { RequestStatus } from "@prisma/client";
 interface StatusSelectProps {
   requestId: string;
   currentStatus: RequestStatus;
+  isReportIssued?: boolean;
 }
 
-export default function StatusSelect({ requestId, currentStatus }: StatusSelectProps) {
+export default function StatusSelect({ requestId, currentStatus, isReportIssued = false }: StatusSelectProps) {
   const [status, setStatus] = useState<RequestStatus>(currentStatus);
   const [loading, setLoading] = useState(false);
 
@@ -29,8 +30,8 @@ export default function StatusSelect({ requestId, currentStatus }: StatusSelectP
     <select
       value={status}
       onChange={handleChange}
-      disabled={loading}
-      className="bg-white border border-border rounded-md px-2.5 py-1.5 text-xs font-semibold text-charcoal focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 cursor-pointer"
+      disabled={loading || isReportIssued}
+      className="bg-white border border-border rounded-md px-2.5 py-1.5 text-xs font-semibold text-charcoal focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
     >
       <option value="SUBMITTED">Submitted</option>
       <option value="IN_PROGRESS">In Progress</option>
