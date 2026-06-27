@@ -24,9 +24,9 @@ export default async function DashboardLayout({
   } catch (dbError) {
     console.error("Dashboard layout database error:", dbError);
     return (
-      <div className="flex min-h-screen bg-brand-bg">
+      <div className="flex flex-col md:flex-row min-h-screen bg-brand-bg">
         <DashboardSidebar role="CLIENT" />
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
           <div className="bg-white border border-red-100 rounded-xl p-8 max-w-xl mx-auto my-12 text-center space-y-6 shadow-sm">
             <div className="mx-auto w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center">
               <span className="text-xl font-bold">!</span>
@@ -50,9 +50,9 @@ export default async function DashboardLayout({
   const role = user?.role || "CLIENT";
 
   return (
-    <div className="flex min-h-screen bg-brand-bg">
+    <div className="flex flex-col md:flex-row min-h-screen bg-brand-bg">
       <DashboardSidebar role={role} />
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
         <div className="max-w-6xl mx-auto">
           {children}
         </div>
