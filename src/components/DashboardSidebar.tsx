@@ -98,7 +98,9 @@ export default function DashboardSidebar({ role }: SidebarProps) {
         {/* Nav Links */}
         <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
           {links.map((link) => {
-            const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
+            const isActive = link.href === "/dashboard" || link.href === "/admin"
+              ? pathname === link.href
+              : pathname === link.href || pathname.startsWith(link.href + "/");
             const Icon = link.icon;
             return (
               <Link
