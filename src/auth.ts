@@ -3,6 +3,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { authConfig } from "./auth.config";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
+import { rateLimit, isAccountLocked, incrementFailedLoginAttempts, resetFailedLoginAttempts, getClientIp } from "@/lib/rate-limit";
+import { logSecurity } from "@/lib/security";
 
 export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   ...authConfig,
@@ -20,11 +22,41 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
           return null;
         }
 
+        const ip = await getClientIp();
+        const cleanEmail = (credentials.email as string).toLowerCase().trim();
+
+        // 1. IP Rate Limiting (10 attempts per minute)
+        const ipLimitCheck = await rateLimit({
+          action: "login-ip",
+          identifier: ip,
+          limit: 10,
+          window: "1m",
+        });
+        if (!ipLimitCheck.success) {
+          logSecurity("RATE_LIMIT_EXCEEDED", {
+            ip,
+            reason: "Login IP rate limit exceeded inside authorize callback",
+          });
+          return null;
+        }
+
+        // 2. Lockout check
+        const locked = await isAccountLocked(cleanEmail);
+        if (locked) {
+          logSecurity("RATE_LIMIT_EXCEEDED", {
+            email: cleanEmail,
+            ip,
+            reason: "Login attempt inside authorize callback to locked account",
+          });
+          return null;
+        }
+
         const user = await db.user.findUnique({
-          where: { email: credentials.email as string },
+          where: { email: cleanEmail },
         });
 
         if (!user || !user.password) {
+          await incrementFailedLoginAttempts(cleanEmail);
           return null;
         }
 
@@ -34,8 +66,12 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         );
 
         if (!isValid) {
+          await incrementFailedLoginAttempts(cleanEmail);
           return null;
         }
+
+        // Reset failed login attempts on successful credentials verification
+        await resetFailedLoginAttempts(cleanEmail);
 
         return {
           id: user.id,

@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoginSchema } from "@/lib/schemas";
 import { signIn } from "next-auth/react";
+import { loginPreflight } from "@/lib/auth-actions";
 import { Button } from "@/components/ui/button";
 import { KeyRound, Eye, EyeOff } from "lucide-react";
 
@@ -37,6 +38,13 @@ export default function LoginForm() {
     setError(null);
 
     try {
+      const preflight = await loginPreflight(data);
+      if (preflight?.error) {
+        setError(preflight.error);
+        setIsLoading(false);
+        return;
+      }
+
       const res = await signIn("credentials", {
         email: data.email,
         password: data.password,
@@ -47,7 +55,6 @@ export default function LoginForm() {
         setError("Invalid email address or password.");
         setIsLoading(false);
       } else {
-        // Redirect to dashboard (or callbackUrl) and trigger hard reload to refresh auth state
         router.push(callbackUrl);
         router.refresh();
       }

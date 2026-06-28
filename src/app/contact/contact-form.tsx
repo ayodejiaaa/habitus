@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
+import { submitContactForm } from "@/lib/actions";
 
 export default function ContactForm() {
   const [firstName, setFirstName] = useState("");
@@ -22,13 +23,17 @@ export default function ContactForm() {
     setStatus("submitting");
 
     try {
-      // Simulate API delivery
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setStatus("success");
-      setFirstName("");
-      setLastName("");
-      setEmail("");
-      setMessage("");
+      const res = await submitContactForm({ firstName, lastName, email, message });
+      if (res?.error) {
+        setStatus("error");
+        setErrorMessage(res.error);
+      } else {
+        setStatus("success");
+        setFirstName("");
+        setLastName("");
+        setEmail("");
+        setMessage("");
+      }
     } catch (err) {
       setStatus("error");
       setErrorMessage("An error occurred while sending your message. Please try again.");

@@ -165,3 +165,9 @@ model VerificationToken {
   usedAt    DateTime?
   createdAt DateTime  @default(now())
 }
+
+model RateLimit {
+  key       String   @id
+  points    Int      @default(0)
+  expiresAt DateTime
+}

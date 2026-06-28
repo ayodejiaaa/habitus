@@ -3,9 +3,10 @@
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import { rateLimit } from "./rate-limit";
+import { rateLimit, isAccountLocked, incrementFailedLoginAttempts, resetFailedLoginAttempts, getClientIp } from "./rate-limit";
 import { generateResetToken, hashToken, logSecurity } from "./security";
 import { sendPasswordResetEmail } from "./email";
+import { LoginSchema } from "./schemas";
 
 const ResetPasswordRequestSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -38,14 +39,38 @@ export async function requestPasswordReset(formData: { email: string }) {
 
     const { email } = validated.data;
 
-    // Rate Limiting
-    const limitCheck = await rateLimit(email);
-    if (!limitCheck.success) {
-      logSecurity("PASSWORD_RESET_FAILED", {
-        email,
-        reason: "Rate limit exceeded",
+    const ip = await getClientIp();
+    const cleanEmail = email.toLowerCase().trim();
+
+    // 1. IP rate limiting (5 per hour)
+    const ipLimitCheck = await rateLimit({
+      action: "forgot-password-ip",
+      identifier: ip,
+      limit: 5,
+      window: "1h",
+    });
+    if (!ipLimitCheck.success) {
+      logSecurity("RATE_LIMIT_EXCEEDED", {
+        ip,
+        reason: "Forgot password IP rate limit exceeded",
       });
-      return { error: "Too many requests. Please try again in an hour." };
+      return { error: "Too many requests. Please try again later." };
+    }
+
+    // 2. Email rate limiting (5 per hour)
+    const emailLimitCheck = await rateLimit({
+      action: "forgot-password-email",
+      identifier: cleanEmail,
+      limit: 5,
+      window: "1h",
+    });
+    if (!emailLimitCheck.success) {
+      logSecurity("RATE_LIMIT_EXCEEDED", {
+        email: cleanEmail,
+        ip,
+        reason: "Forgot password email rate limit exceeded",
+      });
+      return { error: "Too many requests. Please try again later." };
     }
 
     // Look up user
@@ -167,5 +192,89 @@ export async function resetPassword(token: string, values: any) {
   } catch (error: any) {
     console.error("Reset password error:", error);
     return { error: "An unexpected error occurred. Please try again." };
+  }
+}
+
+/**
+ * Pre-flight verification for login attempts to handle custom messages, lockout increments, and IP limits
+ */
+export async function loginPreflight(values: any) {
+  try {
+    const validated = LoginSchema.safeParse(values);
+    if (!validated.success) {
+      return { error: "Invalid form input." };
+    }
+
+    const { email, password } = validated.data;
+    const ip = await getClientIp();
+    const cleanEmail = email.toLowerCase().trim();
+
+    // 1. IP rate limiting (10 per minute)
+    const ipLimit = await rateLimit({
+      action: "login-ip",
+      identifier: ip,
+      limit: 10,
+      window: "1m",
+    });
+    if (!ipLimit.success) {
+      logSecurity("RATE_LIMIT_EXCEEDED", {
+        ip,
+        reason: "Login IP rate limit exceeded during pre-flight",
+      });
+      return { error: "Too many attempts detected. Please wait a few minutes and try again." };
+    }
+
+    // 2. Lockout check
+    const locked = await isAccountLocked(cleanEmail);
+    if (locked) {
+      logSecurity("RATE_LIMIT_EXCEEDED", {
+        email: cleanEmail,
+        ip,
+        reason: "Pre-flight login attempt to locked account",
+      });
+      return { error: "For security reasons, this action has been temporarily restricted." };
+    }
+
+    // 3. Check credentials
+    const user = await db.user.findUnique({
+      where: { email: cleanEmail },
+    });
+
+    if (!user || !user.password) {
+      // Increment failed attempts
+      const lockoutRes = await incrementFailedLoginAttempts(cleanEmail);
+      if (lockoutRes.locked) {
+        logSecurity("ACCOUNT_LOCKED", {
+          email: cleanEmail,
+          ip,
+          reason: "Account locked after 5 failed login attempts",
+        });
+        return { error: "For security reasons, this action has been temporarily restricted." };
+      }
+      return { error: "Invalid email address or password." };
+    }
+
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      // Increment failed attempts
+      const lockoutRes = await incrementFailedLoginAttempts(cleanEmail);
+      if (lockoutRes.locked) {
+        logSecurity("ACCOUNT_LOCKED", {
+          email: cleanEmail,
+          ip,
+          reason: "Account locked after 5 failed login attempts",
+        });
+        return { error: "For security reasons, this action has been temporarily restricted." };
+      }
+      return { error: "Invalid email address or password." };
+    }
+
+    // Reset failed login attempts on pre-flight success
+    await resetFailedLoginAttempts(cleanEmail);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Login preflight error:", error);
+    return { error: "Something went wrong. Please try again." };
   }
 }

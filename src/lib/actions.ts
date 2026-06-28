@@ -17,7 +17,7 @@ import { RequestStatus } from "@prisma/client";
 import { generateVerificationToken } from "./tokens";
 import { sendEmailVerificationEmail, sendReportIssuedEmail } from "./email";
 import { logSecurity } from "./security";
-import { rateLimitVerification } from "./rate-limit";
+import { rateLimit, getClientIp } from "./rate-limit";
 
 /**
  * Register a new user
@@ -30,7 +30,41 @@ export async function registerUser(values: any) {
     }
 
     const { name, email, password } = validated.data;
-    const existingUser = await db.user.findUnique({ where: { email: email.toLowerCase().trim() } });
+    const ip = await getClientIp();
+    const cleanEmail = email.toLowerCase().trim();
+
+    // 1. IP rate limiting (5 per hour)
+    const ipLimitCheck = await rateLimit({
+      action: "register-ip",
+      identifier: ip,
+      limit: 5,
+      window: "1h",
+    });
+    if (!ipLimitCheck.success) {
+      logSecurity("RATE_LIMIT_EXCEEDED", {
+        ip,
+        reason: "Registration IP rate limit exceeded",
+      });
+      return { error: "Too many registrations from this IP. Please try again later." };
+    }
+
+    // 2. Email rate limiting (3 per hour)
+    const emailLimitCheck = await rateLimit({
+      action: "register-email",
+      identifier: cleanEmail,
+      limit: 3,
+      window: "1h",
+    });
+    if (!emailLimitCheck.success) {
+      logSecurity("RATE_LIMIT_EXCEEDED", {
+        email: cleanEmail,
+        ip,
+        reason: "Registration email rate limit exceeded",
+      });
+      return { error: "Too many registration attempts for this email address. Please try again later." };
+    }
+
+    const existingUser = await db.user.findUnique({ where: { email: cleanEmail } });
 
     if (existingUser) {
       return { error: "Email already in use." };
@@ -76,6 +110,22 @@ export async function createInspectionRequest(values: any) {
     const validated = InspectionRequestSchema.safeParse(values);
     if (!validated.success) {
       return { error: "Invalid form input." };
+    }
+
+    const userId = session.user.id;
+    // Rate Limiting: Max 10 requests per day per user
+    const limitCheck = await rateLimit({
+      action: "inspection-request",
+      identifier: userId,
+      limit: 10,
+      window: "24h",
+    });
+    if (!limitCheck.success) {
+      logSecurity("RATE_LIMIT_EXCEEDED", {
+        userId,
+        reason: "Inspection request daily rate limit exceeded",
+      });
+      return { error: "Daily limit for inspection requests reached. Please try again tomorrow." };
     }
 
     const data = validated.data;
@@ -146,6 +196,22 @@ export async function publishInspectionReport(values: any) {
 
     if (!session?.user || role !== "ADMIN") {
       return { error: "Unauthorized access." };
+    }
+
+    const adminUserId = session.user.id || "";
+    // Rate Limiting: Max 5 publishes/updates per minute per admin (accidental double submits)
+    const limitCheck = await rateLimit({
+      action: "publish-report",
+      identifier: adminUserId,
+      limit: 5,
+      window: "1m",
+    });
+    if (!limitCheck.success) {
+      logSecurity("RATE_LIMIT_EXCEEDED", {
+        userId: adminUserId,
+        reason: "Report publishing rate limit exceeded",
+      });
+      return { error: "Too many publishing operations. Please wait a moment." };
     }
 
     const validated = InspectionReportSchema.safeParse(values);
@@ -339,6 +405,22 @@ export async function changePassword(values: any) {
       return { error: "Unauthorized." };
     }
 
+    const userId = session.user.id;
+    // Rate Limiting: Max 5 attempts per hour per authenticated user
+    const limitCheck = await rateLimit({
+      action: "change-password",
+      identifier: userId,
+      limit: 5,
+      window: "1h",
+    });
+    if (!limitCheck.success) {
+      logSecurity("RATE_LIMIT_EXCEEDED", {
+        userId,
+        reason: "Change password rate limit exceeded",
+      });
+      return { error: "Too many attempts detected. Please try again later." };
+    }
+
     const validated = ChangePasswordSchema.safeParse(values);
     if (!validated.success) {
       const errorMsg = validated.error.issues[0]?.message || "Invalid input data.";
@@ -496,13 +578,19 @@ export async function resendVerificationEmail() {
     }
 
     // Rate Limiting: Max 3 per hour
-    const canSend = await rateLimitVerification(userId);
-    if (!canSend) {
-      logSecurity("VERIFICATION_FAILED", {
+    const limitCheck = await rateLimit({
+      action: "resend-verification",
+      identifier: userId,
+      limit: 3,
+      window: "1h",
+    });
+    if (!limitCheck.success) {
+      logSecurity("RATE_LIMIT_EXCEEDED", {
+        userId,
         email: user.email,
-        reason: "Rate limit exceeded on resend",
+        reason: "Verification resend rate limit exceeded",
       });
-      return { error: "Too many verification emails sent. Please try again in an hour." };
+      return { error: "Too many verification emails sent. Please try again later." };
     }
 
     // Generate new token & send email
@@ -521,5 +609,43 @@ export async function resendVerificationEmail() {
   } catch (error) {
     console.error("Resend verification error:", error);
     return { error: "Failed to resend verification email." };
+  }
+}
+
+/**
+ * Submit contact form
+ */
+export async function submitContactForm(values: { firstName: string; lastName: string; email: string; message: string }) {
+  try {
+    const ip = await getClientIp();
+    
+    // Rate limit: 5 submissions per hour per IP
+    const limitCheck = await rateLimit({
+      action: "contact-form",
+      identifier: ip,
+      limit: 5,
+      window: "1h",
+    });
+    
+    if (!limitCheck.success) {
+      logSecurity("RATE_LIMIT_EXCEEDED", {
+        ip,
+        email: values.email,
+        reason: "Contact form rate limit exceeded",
+      });
+      return { error: "Too many attempts detected. Please wait a few minutes and try again." };
+    }
+
+    // Log the security event for audit tracking
+    logSecurity("EVIDENCE_SUBMITTED", {
+      email: values.email,
+      ip,
+      reason: `Contact message submitted by ${values.firstName} ${values.lastName}`,
+    });
+
+    return { success: "Message sent successfully!" };
+  } catch (error) {
+    console.error("Contact submit error:", error);
+    return { error: "Failed to submit contact form." };
   }
 }

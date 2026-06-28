@@ -23,7 +23,9 @@ export function logSecurity(
     | "EVIDENCE_SUBMITTED"
     | "EVIDENCE_ATTACHED"
     | "EVIDENCE_PUBLISHED"
-    | "INVALID_MEDIA_BLOCKED",
+    | "INVALID_MEDIA_BLOCKED"
+    | "RATE_LIMIT_EXCEEDED"
+    | "ACCOUNT_LOCKED",
   details: { 
     email?: string; 
     userId?: string; 
