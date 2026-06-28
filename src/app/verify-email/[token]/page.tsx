@@ -28,7 +28,14 @@ export default async function VerifyEmailTokenPage({ params }: PageProps) {
   try {
     const dbToken = await db.verificationToken.findUnique({
       where: { tokenHash },
-      include: { user: true },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+          }
+        }
+      },
     });
 
     if (dbToken && !dbToken.usedAt && dbToken.expiresAt > new Date()) {
@@ -40,6 +47,7 @@ export default async function VerifyEmailTokenPage({ params }: PageProps) {
         db.user.update({
           where: { id: user.id },
           data: { emailVerified: new Date() },
+          select: { id: true },
         }),
         db.verificationToken.update({
           where: { id: dbToken.id },

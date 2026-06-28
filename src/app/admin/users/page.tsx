@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { adminUserSelect } from "@/lib/database/selects/user-selects";
+import { toAdminUserDTO } from "@/lib/mappers/user-mapper";
+import { sanitizeUserList } from "@/lib/security/user-sanitizer";
 import { Card, CardContent } from "@/components/ui/card";
 import { User, Mail, ShieldAlert, Calendar } from "lucide-react";
 import { requireAuthenticatedUser, requireAdminAccess, AuthorizationError } from "@/lib/access-policy";
@@ -27,9 +30,12 @@ export default async function AdminUsersPage() {
   }
 
   // Fetch all users
-  const users = await db.user.findMany({
+  const rawUsers = await db.user.findMany({
+    select: adminUserSelect,
     orderBy: { createdAt: "desc" },
   });
+
+  const users = sanitizeUserList(rawUsers.map(toAdminUserDTO));
 
   return (
     <div className="space-y-8">

@@ -33,7 +33,13 @@ export default async function AdminRequestsPage() {
   const requests = await db.inspectionRequest.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      user: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        }
+      },
       reports: true,
       service: true,
     },

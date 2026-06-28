@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { clientProfileSelect } from "@/lib/database/selects/user-selects";
+import { toClientProfileDTO } from "@/lib/mappers/user-mapper";
+import { sanitizeUser } from "@/lib/security/user-sanitizer";
 import SettingsForm from "@/components/SettingsForm";
 import { requireAuthenticatedUser, AuthorizationError } from "@/lib/access-policy";
 import SecurityErrorPage from "@/components/SecurityErrorPage";
@@ -10,15 +13,17 @@ export const metadata: Metadata = {
 };
 
 export default async function SettingsPage() {
-  let dbUser;
+  let profile;
   try {
     const user = await requireAuthenticatedUser();
-    dbUser = await db.user.findUnique({
+    const dbUser = await db.user.findUnique({
       where: { id: user.id },
+      select: clientProfileSelect,
     });
     if (!dbUser) {
       redirect("/login");
     }
+    profile = sanitizeUser(toClientProfileDTO(dbUser));
   } catch (error) {
     if (error instanceof AuthorizationError) {
       if (error.code === "UNAUTHENTICATED") {
@@ -41,10 +46,10 @@ export default async function SettingsPage() {
 
       <SettingsForm 
         initialUser={{ 
-          name: dbUser.name, 
-          email: dbUser.email,
-          emailAuditReports: dbUser.emailAuditReports,
-          statusChangeAlerts: dbUser.statusChangeAlerts
+          name: profile.name, 
+          email: profile.email,
+          emailAuditReports: profile.emailAuditReports,
+          statusChangeAlerts: profile.statusChangeAlerts
         }} 
       />
     </div>

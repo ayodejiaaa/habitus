@@ -53,6 +53,15 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
 
         const user = await db.user.findUnique({
           where: { email: cleanEmail },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            password: true,
+            passwordVersion: true,
+            emailVerified: true,
+          },
         });
 
         if (!user || !user.password) {

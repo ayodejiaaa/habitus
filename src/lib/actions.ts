@@ -64,7 +64,7 @@ export async function registerUser(values: any) {
       return { error: "Too many registration attempts for this email address. Please try again later." };
     }
 
-    const existingUser = await db.user.findUnique({ where: { email: cleanEmail } });
+    const existingUser = await db.user.findUnique({ where: { email: cleanEmail }, select: { id: true } });
 
     if (existingUser) {
       return { error: "Email already in use." };
@@ -78,6 +78,10 @@ export async function registerUser(values: any) {
         email: email.toLowerCase().trim(),
         password: hashedPassword,
         role: "CLIENT",
+      },
+      select: {
+        id: true,
+        email: true,
       },
     });
 
@@ -227,7 +231,17 @@ export async function publishInspectionReport(values: any) {
       // Check if report already exists
       const existingReport = await tx.inspectionReport.findUnique({
         where: { requestId },
-        include: { request: { include: { user: true } } },
+        include: {
+          request: {
+            include: {
+              user: {
+                select: {
+                  email: true,
+                }
+              }
+            }
+          }
+        },
       });
 
       if (existingReport && existingReport.status === "ISSUED") {
@@ -315,7 +329,13 @@ export async function publishInspectionReport(values: any) {
       // Fetch request details for email trigger if we are issuing the report
       const requestWithUser = await tx.inspectionRequest.findUnique({
         where: { id: requestId },
-        include: { user: true },
+        include: {
+          user: {
+            select: {
+              email: true,
+            }
+          }
+        },
       });
 
       return { report, request: requestWithUser };
@@ -368,7 +388,7 @@ export async function updateProfile(values: any) {
 
     // Check if email changed and is taken
     if (email !== session.user.email) {
-      const emailExists = await db.user.findUnique({ where: { email } });
+      const emailExists = await db.user.findUnique({ where: { email }, select: { id: true } });
       if (emailExists) {
         return { error: "Email address already in use." };
       }
@@ -377,6 +397,7 @@ export async function updateProfile(values: any) {
     await db.user.update({
       where: { id: session.user.id },
       data: { name, email },
+      select: { id: true },
     });
 
     // Update NextAuth session cookie immediately
@@ -431,6 +452,7 @@ export async function changePassword(values: any) {
 
     const user = await db.user.findUnique({
       where: { id: session.user.id },
+      select: { id: true, password: true },
     });
 
     if (!user || !user.password) {
@@ -446,6 +468,7 @@ export async function changePassword(values: any) {
     await db.user.update({
       where: { id: session.user.id },
       data: { password: newHashedPassword },
+      select: { id: true },
     });
 
     return { success: "Password changed successfully!" };
@@ -482,6 +505,7 @@ export async function updateNotificationPreferences(values: any) {
     await db.user.update({
       where: { id: session.user.id },
       data: { emailAuditReports, statusChangeAlerts },
+      select: { id: true },
     });
 
     revalidatePath("/dashboard/settings");
@@ -567,6 +591,7 @@ export async function resendVerificationEmail() {
     // Fetch user details
     const user = await db.user.findUnique({
       where: { id: userId },
+      select: { id: true, email: true, emailVerified: true },
     });
 
     if (!user) {

@@ -76,6 +76,7 @@ export async function requestPasswordReset(formData: { email: string }) {
     // Look up user
     const user = await db.user.findUnique({
       where: { email: email.toLowerCase().trim() },
+      select: { id: true, email: true },
     });
 
     // Security best practice: Do not reveal if email exists.
@@ -141,7 +142,14 @@ export async function resetPassword(token: string, values: any) {
     // Fetch token details
     const dbToken = await db.passwordResetToken.findUnique({
       where: { tokenHash },
-      include: { user: true },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+          }
+        }
+      },
     });
 
     if (!dbToken || dbToken.usedAt || dbToken.expiresAt < new Date()) {
@@ -166,6 +174,7 @@ export async function resetPassword(token: string, values: any) {
           password: hashedPassword,
           passwordVersion: { increment: 1 },
         },
+        select: { id: true },
       }),
       // Mark current token as used
       db.passwordResetToken.update({
@@ -238,6 +247,7 @@ export async function loginPreflight(values: any) {
     // 3. Check credentials
     const user = await db.user.findUnique({
       where: { email: cleanEmail },
+      select: { id: true, password: true },
     });
 
     if (!user || !user.password) {
