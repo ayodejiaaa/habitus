@@ -18,6 +18,7 @@ import { generateVerificationToken } from "./tokens";
 import { sendEmailVerificationEmail, sendReportIssuedEmail } from "./email";
 import { logSecurity } from "./security";
 import { rateLimit, getClientIp } from "./rate-limit";
+import { sanitizeText, sanitizeMultilineText } from "./security/input-security";
 
 /**
  * Register a new user
@@ -72,9 +73,11 @@ export async function registerUser(values: any) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     
+    const sanitizedName = sanitizeText(name);
+
     const user = await db.user.create({
       data: {
-        name,
+        name: sanitizedName,
         email: email.toLowerCase().trim(),
         password: hashedPassword,
         role: "CLIENT",
@@ -133,22 +136,31 @@ export async function createInspectionRequest(values: any) {
     }
 
     const data = validated.data;
+    const sanitizedProjectName = sanitizeText(data.projectName);
+    const sanitizedPropertyAddress = sanitizeText(data.propertyAddress);
+    const sanitizedCity = sanitizeText(data.city);
+    const sanitizedState = sanitizeText(data.state);
+    const sanitizedCountry = sanitizeText(data.country);
+    const sanitizedSiteContactName = sanitizeText(data.siteContactName);
+    const sanitizedSiteContactPhone = sanitizeText(data.siteContactPhone);
+    const sanitizedNotes = sanitizeMultilineText(data.notes);
+    const sanitizedSpecialInstructions = sanitizeMultilineText(data.specialInstructions);
 
     await db.inspectionRequest.create({
       data: {
         userId: session.user.id,
-        projectName: data.projectName,
-        propertyAddress: data.propertyAddress,
-        city: data.city,
-        state: data.state,
-        country: data.country,
+        projectName: sanitizedProjectName,
+        propertyAddress: sanitizedPropertyAddress,
+        city: sanitizedCity,
+        state: sanitizedState,
+        country: sanitizedCountry,
         propertyType: data.propertyType,
         stage: data.stage,
         serviceId: data.serviceId,
-        siteContactName: data.siteContactName,
-        siteContactPhone: data.siteContactPhone,
-        notes: data.notes || null,
-        specialInstructions: data.specialInstructions || null,
+        siteContactName: sanitizedSiteContactName,
+        siteContactPhone: sanitizedSiteContactPhone,
+        notes: sanitizedNotes || null,
+        specialInstructions: sanitizedSpecialInstructions || null,
         status: "SUBMITTED",
         paymentStatus: values.paymentStatus || "PAID",
       },
@@ -226,6 +238,9 @@ export async function publishInspectionReport(values: any) {
 
     const { requestId, assessmentStatus, executiveSummary, findings, recommendation, status = "DRAFT", mediaAssets } = validated.data;
 
+    const sanitizedExecutiveSummary = sanitizeMultilineText(executiveSummary);
+    const sanitizedFindings = sanitizeMultilineText(findings);
+
     // Transaction to create/update report, add assets, and update request status
     const result = await db.$transaction(async (tx) => {
       // Check if report already exists
@@ -255,8 +270,8 @@ export async function publishInspectionReport(values: any) {
           where: { id: existingReport.id },
           data: {
             assessmentStatus,
-            executiveSummary,
-            findings,
+            executiveSummary: sanitizedExecutiveSummary,
+            findings: sanitizedFindings,
             recommendation,
             status: status as any,
           },
@@ -272,8 +287,8 @@ export async function publishInspectionReport(values: any) {
           data: {
             requestId,
             assessmentStatus,
-            executiveSummary,
-            findings,
+            executiveSummary: sanitizedExecutiveSummary,
+            findings: sanitizedFindings,
             recommendation,
             status: status as any,
           },
@@ -385,6 +400,7 @@ export async function updateProfile(values: any) {
     }
 
     const { name, email } = validated.data;
+    const sanitizedName = sanitizeText(name);
 
     // Check if email changed and is taken
     if (email !== session.user.email) {
@@ -396,14 +412,14 @@ export async function updateProfile(values: any) {
 
     await db.user.update({
       where: { id: session.user.id },
-      data: { name, email },
+      data: { name: sanitizedName, email },
       select: { id: true },
     });
 
     // Update NextAuth session cookie immediately
     await unstable_update({
       user: {
-        name,
+        name: sanitizedName,
         email,
       }
     });
@@ -661,11 +677,14 @@ export async function submitContactForm(values: { firstName: string; lastName: s
       return { error: "Too many attempts detected. Please wait a few minutes and try again." };
     }
 
+    const sanitizedFirstName = sanitizeText(values.firstName);
+    const sanitizedLastName = sanitizeText(values.lastName);
+
     // Log the security event for audit tracking
     logSecurity("EVIDENCE_SUBMITTED", {
       email: values.email,
       ip,
-      reason: `Contact message submitted by ${values.firstName} ${values.lastName}`,
+      reason: `Contact message submitted by ${sanitizedFirstName} ${sanitizedLastName}`,
     });
 
     return { success: "Message sent successfully!" };
