@@ -8,7 +8,7 @@ import { InspectionReportSchema } from "@/lib/schemas";
 import { publishInspectionReport } from "@/lib/actions";
 import { Button } from "./ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
-import { FileText, Save, Info, Link2, Trash2, PlayCircle, Image as ImageIcon, AlertCircle } from "lucide-react";
+import { FileText, Save, Info, Link2, Trash2, PlayCircle, Image as ImageIcon, AlertCircle, Folder } from "lucide-react";
 import { validateMediaUrl } from "@/lib/media/validators";
 
 interface RequestItem {
@@ -318,7 +318,9 @@ export default function ReportBuilderForm({ requests }: ReportBuilderFormProps) 
                         className="flex items-center justify-between gap-3 bg-white border border-border p-2 rounded-lg text-xs animate-in slide-in-from-bottom-2 duration-200"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          {asset.mediaType === "IMAGE" ? (
+                          {asset.trustedUrl?.includes("/folders/") ? (
+                            <Folder className="h-4 w-4 text-amber-500 shrink-0" />
+                          ) : asset.mediaType === "IMAGE" ? (
                             <ImageIcon className="h-4 w-4 text-primary shrink-0" />
                           ) : (
                             <PlayCircle className="h-4 w-4 text-accent shrink-0" />

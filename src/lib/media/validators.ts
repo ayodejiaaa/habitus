@@ -42,6 +42,24 @@ export function validateMediaUrl(urlStr: string): {
     // Google Drive check
     if (hostname.includes("google.com") || hostname.includes("googleusercontent.com")) {
       let fileId = "";
+      let folderId = "";
+
+      // Try to parse folder ID first
+      // Format: drive.google.com/drive/folders/FOLDER_ID or drive/u/0/folders/FOLDER_ID
+      if (url.pathname.includes("/folders/")) {
+        const parts = url.pathname.split("/folders/");
+        folderId = parts[1]?.split(/[/?#]/)[0] || "";
+      }
+
+      if (folderId) {
+        return {
+          isValid: true,
+          storageProvider: "GOOGLE_DRIVE",
+          mediaType: "IMAGE",
+          extractedId: folderId,
+          cleanUrl: urlStr,
+        };
+      }
       
       // Try to parse file ID from various formats
       // Format 1: drive.google.com/file/d/FILE_ID/view

@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MapPin, Calendar, ShieldCheck, AlertCircle, AlertOctagon, HelpCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, ShieldCheck, AlertCircle, AlertOctagon, HelpCircle, Folder } from "lucide-react";
 import { requireAuthenticatedUser, requireReportAccess, AuthorizationError } from "@/lib/access-policy";
 import SecurityErrorPage from "@/components/SecurityErrorPage";
 import { validateMediaUrl } from "@/lib/media/validators";
@@ -264,16 +264,35 @@ export default async function ReportDetailPage({ params }: PageProps) {
                 return (
                   <div key={photo.id} className="relative rounded-lg overflow-hidden border border-border group bg-gray-50 flex flex-col justify-center min-h-[12rem]">
                     {isTrusted ? (
-                      <>
-                        <img
-                          src={photo.trustedUrl}
-                          alt={photo.displayName || "Construction site evidence"}
-                          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-200"
-                        />
-                        <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white p-2 text-center text-[10px] font-bold">
-                          {photo.displayName || "Site Capture Log"}
-                        </div>
-                      </>
+                      photo.trustedUrl.includes("/folders/") ? (
+                        <a 
+                          href={photo.trustedUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex flex-col items-center justify-center p-6 text-center h-48 bg-gray-50 border border-border rounded-lg hover:bg-gray-100 transition-colors group cursor-pointer"
+                        >
+                          <div className="p-3 bg-amber-100 rounded-full text-amber-600 mb-3 group-hover:scale-110 transition-transform duration-200">
+                            <Folder className="h-8 w-8" />
+                          </div>
+                          <span className="text-sm font-bold text-charcoal truncate max-w-xs block">
+                            {photo.displayName || "View Drive Photos"}
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-mono mt-1">
+                            GOOGLE DRIVE FOLDER
+                          </span>
+                        </a>
+                      ) : (
+                        <>
+                          <img
+                            src={photo.trustedUrl}
+                            alt={photo.displayName || "Construction site evidence"}
+                            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-200"
+                          />
+                          <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white p-2 text-center text-[10px] font-bold">
+                            {photo.displayName || "Site Capture Log"}
+                          </div>
+                        </>
+                      )
                     ) : (
                       <div className="flex flex-col items-center justify-center p-6 text-center h-48 bg-gray-50 border border-red-100 rounded-lg">
                         <AlertOctagon className="h-6 w-6 text-red-400 mb-1.5 shrink-0" />
