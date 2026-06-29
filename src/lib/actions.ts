@@ -19,6 +19,7 @@ import { sendEmailVerificationEmail, sendReportIssuedEmail } from "./email";
 import { logSecurity } from "./security";
 import { rateLimit, getClientIp } from "./rate-limit";
 import { sanitizeText, sanitizeMultilineText } from "./security/input-security";
+import { canModifyRequest } from "./security/report-integrity";
 
 /**
  * Register a new user
@@ -187,9 +188,19 @@ export async function updateRequestStatus(requestId: string, status: RequestStat
       return { error: "Unauthorized access." };
     }
 
+    const integrity = await canModifyRequest(requestId);
+    if (!integrity.allowed) {
+      logSecurity("REPORT_INTEGRITY_VIOLATION", {
+        userId: session.user.id,
+        reason: `Blocked attempt by user (role: ${role}) to update request ${requestId} status to ${status} after report was issued`,
+      });
+      return { error: integrity.reason || "This request cannot be modified because an inspection report has already been issued." };
+    }
+
     await db.inspectionRequest.update({
       where: { id: requestId },
       data: { status },
+      select: { id: true },
     });
 
     revalidatePath("/admin/requests");
