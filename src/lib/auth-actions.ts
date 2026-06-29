@@ -288,3 +288,79 @@ export async function loginPreflight(values: any) {
     return { error: "Something went wrong. Please try again." };
   }
 }
+
+/**
+ * Verifies a user's email using a secure token.
+ * This is executed via POST (Server Action) to prevent token pre-consumption by scanners.
+ */
+export async function verifyEmailToken(token: string) {
+  try {
+    const tokenHash = hashToken(token);
+
+    // Fetch token details
+    const dbToken = await db.verificationToken.findUnique({
+      where: { tokenHash },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            emailVerified: true,
+          }
+        }
+      },
+    });
+
+    if (!dbToken) {
+      return { status: "INVALID", error: "Invalid verification link." };
+    }
+
+    // If already verified, treat as success
+    if (dbToken.user.emailVerified) {
+      return { status: "ALREADY_VERIFIED", success: "Your email has already been verified." };
+    }
+
+    // Check if token has been used
+    if (dbToken.usedAt) {
+      return { status: "ALREADY_VERIFIED", success: "Your email has already been verified." };
+    }
+
+    // Check if token is expired
+    if (dbToken.expiresAt < new Date()) {
+      return { status: "EXPIRED", error: "Verification link has expired." };
+    }
+
+    const user = dbToken.user;
+
+    // Invalidate all tokens and mark email verified in a transaction
+    await db.$transaction([
+      db.user.update({
+        where: { id: user.id },
+        data: { emailVerified: new Date() },
+        select: { id: true },
+      }),
+      db.verificationToken.update({
+        where: { id: dbToken.id },
+        data: { usedAt: new Date() },
+      }),
+      db.verificationToken.updateMany({
+        where: {
+          userId: user.id,
+          id: { not: dbToken.id },
+          usedAt: null,
+        },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+
+    logSecurity("VERIFICATION_SUCCESSFUL", {
+      email: user.email,
+      tokenId: dbToken.id,
+    });
+
+    return { status: "SUCCESS", success: "Your email has been successfully verified." };
+  } catch (error) {
+    console.error("Token verification Server Action error:", error);
+    return { status: "ERROR", error: "Failed to verify email. Please try again." };
+  }
+}
