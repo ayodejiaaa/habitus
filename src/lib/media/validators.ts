@@ -1,3 +1,5 @@
+import { validateUrl } from "../security/url-security";
+
 const TRUSTED_DOMAINS = [
   // Google Drive
   "drive.google.com",
@@ -6,7 +8,6 @@ const TRUSTED_DOMAINS = [
   "lh4.googleusercontent.com",
   "lh5.googleusercontent.com",
   "lh6.googleusercontent.com",
-  // YouTube
   "youtube.com",
   "www.youtube.com",
   "youtu.be",
@@ -27,6 +28,11 @@ export function validateMediaUrl(urlStr: string): {
   error?: string;
 } {
   try {
+    const urlValidation = validateUrl(urlStr);
+    if (!urlValidation.isValid) {
+      return { isValid: false, error: urlValidation.error || "Invalid URL protocol." };
+    }
+
     const url = new URL(urlStr);
     const hostname = url.hostname.toLowerCase();
     

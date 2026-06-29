@@ -27,7 +27,8 @@ export function logSecurity(
     | "RATE_LIMIT_EXCEEDED"
     | "ACCOUNT_LOCKED"
     | "REPORT_INTEGRITY_VIOLATION"
-    | "RATE_LIMITER_FAILURE",
+    | "RATE_LIMITER_FAILURE"
+    | "UNAUTHORIZED_URL_BLOCKED",
   details: { 
     email?: string; 
     userId?: string; 

@@ -20,6 +20,7 @@ import { logSecurity } from "./security";
 import { rateLimit, getClientIp } from "./rate-limit";
 import { sanitizeText, sanitizeMultilineText } from "./security/input-security";
 import { canModifyRequest } from "./security/report-integrity";
+import { validateUrl } from "./security/url-security";
 
 /**
  * Register a new user
@@ -248,6 +249,22 @@ export async function publishInspectionReport(values: any) {
     }
 
     const { requestId, assessmentStatus, executiveSummary, findings, recommendation, status = "DRAFT", mediaAssets } = validated.data;
+
+    // Server-side strict URL protocol validation
+    if (mediaAssets && mediaAssets.length > 0) {
+      for (const asset of mediaAssets) {
+        const urlValidation = validateUrl(asset.trustedUrl);
+        if (!urlValidation.isValid) {
+          logSecurity("UNAUTHORIZED_URL_BLOCKED", {
+            userId: session.user.id,
+            resourceType: "MEDIA_ASSET",
+            resourceId: asset.trustedUrl,
+            reason: `Blocked unauthorized URL protocol attempt during report publish: ${urlValidation.error}`,
+          });
+          return { error: "Invalid media URL protocol." };
+        }
+      }
+    }
 
     const sanitizedExecutiveSummary = sanitizeMultilineText(executiveSummary);
     const sanitizedFindings = sanitizeMultilineText(findings);
