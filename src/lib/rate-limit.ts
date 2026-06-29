@@ -1,12 +1,15 @@
 import { headers } from "next/headers";
-import { db } from "@/lib/db";
 import { Redis } from "@upstash/redis";
+import { logSecurity } from "./security";
 
 // Initialize Upstash Redis client if credentials are provided in env variables
-const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+const redis = redisUrl && redisToken
   ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      url: redisUrl,
+      token: redisToken,
     })
   : null;
 
@@ -45,117 +48,103 @@ interface RateLimitParams {
 }
 
 /**
- * Core rate limiting utility.
+ * Core rate limiting utility using Redis as the single source of truth.
  * Protects actions by limiting attempts for an identifier in a given time window.
+ * Fails closed (blocks request) if Redis is unavailable or unconfigured to prevent bypass.
  */
 export async function rateLimit({
   action,
   identifier,
   limit,
   window,
-}: RateLimitParams): Promise<{ success: boolean; limit: number; remaining: number }> {
+}: RateLimitParams): Promise<{ success: boolean; limit: number; remaining: number; error?: string }> {
   const windowSeconds = parseWindowToSeconds(window);
   const key = `ratelimit:${action}:${identifier}`;
 
-  // 1. Try Redis rate limiting
-  if (redis) {
-    try {
-      const current = await redis.incr(key);
-      if (current === 1) {
-        await redis.expire(key, windowSeconds);
-      }
-      const remaining = Math.max(0, limit - current);
-      return {
-        success: current <= limit,
-        limit,
-        remaining,
-      };
-    } catch (redisError) {
-      console.error("Upstash Redis rate limiter error, falling back to DB:", redisError);
-    }
+  if (!redis) {
+    logSecurity("RATE_LIMITER_FAILURE", {
+      reason: `Redis unconfigured. Action: ${action}, Identifier: ${identifier}`,
+    });
+    return {
+      success: false,
+      limit,
+      remaining: 0,
+      error: "Please try again shortly.",
+    };
   }
 
-  // 2. Fallback to PostgreSQL database rate limiting
   try {
-    const now = new Date();
-    // Prune expired entries to keep database size clean
-    await db.rateLimit.deleteMany({
-      where: { expiresAt: { lt: now } },
-    }).catch(() => {});
+    const current = await redis.incr(key);
+    if (current === 1) {
+      await redis.expire(key, windowSeconds);
+    }
+    const remaining = Math.max(0, limit - current);
+    const success = current <= limit;
 
-    const record = await db.rateLimit.findUnique({
-      where: { key },
-    });
-
-    if (!record || record.expiresAt < now) {
-      const expiresAt = new Date(Date.now() + windowSeconds * 1000);
-      await db.rateLimit.upsert({
-        where: { key },
-        create: { key, points: 1, expiresAt },
-        update: { points: 1, expiresAt },
+    if (!success) {
+      logSecurity("RATE_LIMIT_EXCEEDED", {
+        userId: identifier.includes("@") ? undefined : identifier,
+        email: identifier.includes("@") ? identifier : undefined,
+        reason: `Rate limit exceeded for action: ${action}`,
       });
-      return { success: true, limit, remaining: limit - 1 };
     }
-
-    if (record.points >= limit) {
-      return { success: false, limit, remaining: 0 };
-    }
-
-    const updated = await db.rateLimit.update({
-      where: { key },
-      data: { points: { increment: 1 } },
-    });
 
     return {
-      success: true,
+      success,
       limit,
-      remaining: Math.max(0, limit - updated.points),
+      remaining,
     };
-  } catch (dbError) {
-    console.error("Database rate limiter fallback error:", dbError);
-    // Secure by default: if rate limiter fails, allow request but log warning
-    return { success: true, limit, remaining: 1 };
+  } catch (error: any) {
+    logSecurity("RATE_LIMITER_FAILURE", {
+      reason: `Redis error: ${error.message || error}. Action: ${action}, Identifier: ${identifier}`,
+    });
+    return {
+      success: false,
+      limit,
+      remaining: 0,
+      error: "Please try again shortly.",
+    };
   }
 }
 
 /**
  * Checks if a login account (email) is currently locked out.
+ * Fails closed (returns true) if Redis is unavailable.
  */
 export async function isAccountLocked(email: string): Promise<boolean> {
   const cleanEmail = email.toLowerCase().trim();
   const key = `lockout:${cleanEmail}`;
 
-  // Try Redis
-  if (redis) {
-    try {
-      const exists = await redis.exists(key);
-      return exists > 0;
-    } catch (err) {
-      console.error("Redis lockout check failed, checking DB:", err);
-    }
+  if (!redis) {
+    logSecurity("RATE_LIMITER_FAILURE", {
+      email: cleanEmail,
+      reason: "Redis unconfigured during lockout check",
+    });
+    return true; // Fail closed
   }
 
-  // Try DB
   try {
-    const record = await db.rateLimit.findUnique({ where: { key } });
-    if (record && record.expiresAt > new Date()) {
-      return true;
-    }
-  } catch (err) {
-    console.error("Database lockout check failed:", err);
+    const exists = await redis.exists(key);
+    return exists > 0;
+  } catch (err: any) {
+    logSecurity("RATE_LIMITER_FAILURE", {
+      email: cleanEmail,
+      reason: `Redis error during lockout check: ${err.message || err}`,
+    });
+    return true; // Fail closed
   }
-
-  return false;
 }
 
 interface LockoutResult {
   locked: boolean;
   remainingAttempts: number;
   lockExpiration?: Date;
+  error?: string;
 }
 
 /**
  * Increments failed login attempts for an email and applies a 15-minute lockout if threshold is exceeded.
+ * Fails closed (returns locked: true) if Redis is unavailable.
  */
 export async function incrementFailedLoginAttempts(email: string): Promise<LockoutResult> {
   const cleanEmail = email.toLowerCase().trim();
@@ -164,64 +153,36 @@ export async function incrementFailedLoginAttempts(email: string): Promise<Locko
   const limit = 5;
   const windowSeconds = 15 * 60; // 15 minutes
 
-  // 1. Try Redis
-  if (redis) {
-    try {
-      const attempts = await redis.incr(failKey);
-      if (attempts === 1) {
-        await redis.expire(failKey, windowSeconds);
-      }
-
-      if (attempts >= limit) {
-        await redis.set(lockKey, "locked", { ex: windowSeconds });
-        return {
-          locked: true,
-          remainingAttempts: 0,
-          lockExpiration: new Date(Date.now() + windowSeconds * 1000),
-        };
-      }
-
-      return {
-        locked: false,
-        remainingAttempts: limit - attempts,
-      };
-    } catch (err) {
-      console.error("Redis failed login increment failed, using DB:", err);
-    }
+  if (!redis) {
+    logSecurity("RATE_LIMITER_FAILURE", {
+      email: cleanEmail,
+      reason: "Redis unconfigured during failed login increment",
+    });
+    return {
+      locked: true,
+      remainingAttempts: 0,
+      error: "Please try again shortly.",
+    };
   }
 
-  // 2. Try DB
   try {
-    const now = new Date();
-    const record = await db.rateLimit.findUnique({ where: { key: failKey } });
-
-    let attempts = 1;
-    if (record && record.expiresAt > now) {
-      attempts = record.points + 1;
-      await db.rateLimit.update({
-        where: { key: failKey },
-        data: { points: attempts },
-      });
-    } else {
-      const expiresAt = new Date(Date.now() + windowSeconds * 1000);
-      await db.rateLimit.upsert({
-        where: { key: failKey },
-        create: { key: failKey, points: 1, expiresAt },
-        update: { points: 1, expiresAt },
-      });
+    const attempts = await redis.incr(failKey);
+    if (attempts === 1) {
+      await redis.expire(failKey, windowSeconds);
     }
 
     if (attempts >= limit) {
-      const expiresAt = new Date(Date.now() + windowSeconds * 1000);
-      await db.rateLimit.upsert({
-        where: { key: lockKey },
-        create: { key: lockKey, points: 1, expiresAt },
-        update: { points: 1, expiresAt },
+      await redis.set(lockKey, "locked", { ex: windowSeconds });
+      
+      logSecurity("ACCOUNT_LOCKED", {
+        email: cleanEmail,
+        reason: "Account locked after 5 failed login attempts",
       });
+
       return {
         locked: true,
         remainingAttempts: 0,
-        lockExpiration: expiresAt,
+        lockExpiration: new Date(Date.now() + windowSeconds * 1000),
       };
     }
 
@@ -229,9 +190,16 @@ export async function incrementFailedLoginAttempts(email: string): Promise<Locko
       locked: false,
       remainingAttempts: limit - attempts,
     };
-  } catch (err) {
-    console.error("Database failed login increment failed:", err);
-    return { locked: false, remainingAttempts: 1 };
+  } catch (err: any) {
+    logSecurity("RATE_LIMITER_FAILURE", {
+      email: cleanEmail,
+      reason: `Redis error during failed login increment: ${err.message || err}`,
+    });
+    return {
+      locked: true,
+      remainingAttempts: 0,
+      error: "Please try again shortly.",
+    };
   }
 }
 
@@ -243,23 +211,20 @@ export async function resetFailedLoginAttempts(email: string): Promise<void> {
   const failKey = `loginfail:${cleanEmail}`;
   const lockKey = `lockout:${cleanEmail}`;
 
-  // Try Redis
-  if (redis) {
-    try {
-      await redis.del(failKey, lockKey);
-    } catch (err) {
-      console.error("Redis reset attempts failed:", err);
-    }
+  if (!redis) {
+    logSecurity("RATE_LIMITER_FAILURE", {
+      email: cleanEmail,
+      reason: "Redis unconfigured during failed attempts reset",
+    });
+    return;
   }
 
-  // Try DB
   try {
-    await db.rateLimit.deleteMany({
-      where: {
-        key: { in: [failKey, lockKey] },
-      },
+    await redis.del(failKey, lockKey);
+  } catch (err: any) {
+    logSecurity("RATE_LIMITER_FAILURE", {
+      email: cleanEmail,
+      reason: `Redis error during failed attempts reset: ${err.message || err}`,
     });
-  } catch (err) {
-    console.error("Database reset attempts failed:", err);
   }
 }

@@ -47,7 +47,7 @@ export async function registerUser(values: any) {
         ip,
         reason: "Registration IP rate limit exceeded",
       });
-      return { error: "Too many registrations from this IP. Please try again later." };
+      return { error: ipLimitCheck.error || "Too many registrations from this IP. Please try again later." };
     }
 
     // 2. Email rate limiting (3 per hour)
@@ -63,7 +63,7 @@ export async function registerUser(values: any) {
         ip,
         reason: "Registration email rate limit exceeded",
       });
-      return { error: "Too many registration attempts for this email address. Please try again later." };
+      return { error: emailLimitCheck.error || "Too many registration attempts for this email address. Please try again later." };
     }
 
     const existingUser = await db.user.findUnique({ where: { email: cleanEmail }, select: { id: true } });
@@ -133,7 +133,7 @@ export async function createInspectionRequest(values: any) {
         userId,
         reason: "Inspection request daily rate limit exceeded",
       });
-      return { error: "Daily limit for inspection requests reached. Please try again tomorrow." };
+      return { error: limitCheck.error || "Daily limit for inspection requests reached. Please try again tomorrow." };
     }
 
     const data = validated.data;
@@ -238,7 +238,7 @@ export async function publishInspectionReport(values: any) {
         userId: adminUserId,
         reason: "Report publishing rate limit exceeded",
       });
-      return { error: "Too many publishing operations. Please wait a moment." };
+      return { error: limitCheck.error || "Too many publishing operations. Please wait a moment." };
     }
 
     const validated = InspectionReportSchema.safeParse(values);
@@ -466,7 +466,7 @@ export async function changePassword(values: any) {
         userId,
         reason: "Change password rate limit exceeded",
       });
-      return { error: "Too many attempts detected. Please try again later." };
+      return { error: limitCheck.error || "Too many attempts detected. Please try again later." };
     }
 
     const validated = ChangePasswordSchema.safeParse(values);
@@ -642,7 +642,7 @@ export async function resendVerificationEmail() {
         email: user.email,
         reason: "Verification resend rate limit exceeded",
       });
-      return { error: "Too many verification emails sent. Please try again later." };
+      return { error: limitCheck.error || "Too many verification emails sent. Please try again later." };
     }
 
     // Generate new token & send email
@@ -685,7 +685,7 @@ export async function submitContactForm(values: { firstName: string; lastName: s
         email: values.email,
         reason: "Contact form rate limit exceeded",
       });
-      return { error: "Too many attempts detected. Please wait a few minutes and try again." };
+      return { error: limitCheck.error || "Too many attempts detected. Please wait a few minutes and try again." };
     }
 
     const sanitizedFirstName = sanitizeText(values.firstName);

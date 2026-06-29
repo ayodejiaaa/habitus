@@ -26,7 +26,8 @@ export function logSecurity(
     | "INVALID_MEDIA_BLOCKED"
     | "RATE_LIMIT_EXCEEDED"
     | "ACCOUNT_LOCKED"
-    | "REPORT_INTEGRITY_VIOLATION",
+    | "REPORT_INTEGRITY_VIOLATION"
+    | "RATE_LIMITER_FAILURE",
   details: { 
     email?: string; 
     userId?: string; 

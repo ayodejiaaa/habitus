@@ -54,7 +54,7 @@ export async function requestPasswordReset(formData: { email: string }) {
         ip,
         reason: "Forgot password IP rate limit exceeded",
       });
-      return { error: "Too many requests. Please try again later." };
+      return { error: ipLimitCheck.error || "Too many requests. Please try again later." };
     }
 
     // 2. Email rate limiting (5 per hour)
@@ -70,7 +70,7 @@ export async function requestPasswordReset(formData: { email: string }) {
         ip,
         reason: "Forgot password email rate limit exceeded",
       });
-      return { error: "Too many requests. Please try again later." };
+      return { error: emailLimitCheck.error || "Too many requests. Please try again later." };
     }
 
     // Look up user
@@ -230,7 +230,7 @@ export async function loginPreflight(values: any) {
         ip,
         reason: "Login IP rate limit exceeded during pre-flight",
       });
-      return { error: "Too many attempts detected. Please wait a few minutes and try again." };
+      return { error: ipLimit.error || "Too many attempts detected. Please wait a few minutes and try again." };
     }
 
     // 2. Lockout check
@@ -253,13 +253,13 @@ export async function loginPreflight(values: any) {
     if (!user || !user.password) {
       // Increment failed attempts
       const lockoutRes = await incrementFailedLoginAttempts(cleanEmail);
-      if (lockoutRes.locked) {
+      if (lockoutRes.locked || lockoutRes.error) {
         logSecurity("ACCOUNT_LOCKED", {
           email: cleanEmail,
           ip,
-          reason: "Account locked after 5 failed login attempts",
+          reason: lockoutRes.error ? "Account locking due to rate limiter infrastructure error" : "Account locked after 5 failed login attempts",
         });
-        return { error: "For security reasons, this action has been temporarily restricted." };
+        return { error: lockoutRes.error || "For security reasons, this action has been temporarily restricted." };
       }
       return { error: "Invalid email address or password." };
     }
@@ -268,13 +268,13 @@ export async function loginPreflight(values: any) {
     if (!isValid) {
       // Increment failed attempts
       const lockoutRes = await incrementFailedLoginAttempts(cleanEmail);
-      if (lockoutRes.locked) {
+      if (lockoutRes.locked || lockoutRes.error) {
         logSecurity("ACCOUNT_LOCKED", {
           email: cleanEmail,
           ip,
-          reason: "Account locked after 5 failed login attempts",
+          reason: lockoutRes.error ? "Account locking due to rate limiter infrastructure error" : "Account locked after 5 failed login attempts",
         });
-        return { error: "For security reasons, this action has been temporarily restricted." };
+        return { error: lockoutRes.error || "For security reasons, this action has been temporarily restricted." };
       }
       return { error: "Invalid email address or password." };
     }
