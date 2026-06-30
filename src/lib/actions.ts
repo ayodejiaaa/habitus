@@ -91,13 +91,16 @@ export async function registerUser(values: any) {
     });
 
     // Generate token & send email
-    const token = await generateVerificationToken(user.id);
-    const appUrl = process.env.APP_URL || "http://localhost:3000";
-    const verificationLink = `${appUrl}/verify-email/${token}`;
-    
-    await sendEmailVerificationEmail(user.email, verificationLink);
-
-    logSecurity("VERIFICATION_EMAIL_SENT", { email: user.email });
+    try {
+      const token = await generateVerificationToken(user.id);
+      const appUrl = process.env.APP_URL || "http://localhost:3000";
+      const verificationLink = `${appUrl}/verify-email/${token}`;
+      
+      await sendEmailVerificationEmail(user.email, verificationLink);
+      logSecurity("VERIFICATION_EMAIL_SENT", { email: user.email });
+    } catch (emailError) {
+      console.error("Registration succeeded but verification email delivery failed:", emailError);
+    }
 
     return { success: "Account created successfully! Please check your email to verify your account." };
   } catch (error: any) {
