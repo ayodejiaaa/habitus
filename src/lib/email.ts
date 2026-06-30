@@ -410,14 +410,6 @@ ${values.message}
         },
       },
     ],
-    reply_to: [
-      {
-        email_address: {
-          address: values.email,
-          name: `${values.firstName} ${values.lastName}`,
-        },
-      },
-    ],
     subject: subject,
     htmlbody: htmlContent,
     textbody: textContent,
