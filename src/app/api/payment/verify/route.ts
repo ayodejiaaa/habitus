@@ -69,12 +69,13 @@ export async function GET(req: NextRequest) {
 
     // 5. Securely validate amount matches expected service price (in kobo)
     const expectedAmountKobo = Math.round(request.service.price * 100);
-    if (Math.round(txData.amount) !== expectedAmountKobo) {
+    const receivedAmountKobo = txData.requested_amount || txData.amount;
+    if (Math.round(receivedAmountKobo) !== expectedAmountKobo) {
       logSecurity("PAYMENT_VERIFICATION_FAILURE", {
         userId: request.userId,
         resourceType: "PAYMENT_AMOUNT_MISMATCH",
         resourceId: reference,
-        reason: `Expected amount: ${expectedAmountKobo} kobo, received: ${txData.amount} kobo`,
+        reason: `Expected amount: ${expectedAmountKobo} kobo, received: ${receivedAmountKobo} kobo (fees: ${txData.fees || 0} kobo)`,
       });
       return NextResponse.redirect(new URL("/dashboard?payment=failed&message=Payment%20amount%20mismatch", origin));
     }

@@ -79,12 +79,13 @@ export async function POST(req: NextRequest) {
 
     // 4. Verify transaction amount matches expected price (in kobo)
     const expectedAmountKobo = Math.round(request.service.price * 100);
-    if (Math.round(txData.amount) !== expectedAmountKobo) {
+    const receivedAmountKobo = txData.requested_amount || txData.amount;
+    if (Math.round(receivedAmountKobo) !== expectedAmountKobo) {
       logSecurity("PAYMENT_VERIFICATION_FAILURE", {
         userId: request.userId,
         resourceType: "PAYMENT_AMOUNT_MISMATCH",
         resourceId: reference,
-        reason: `Webhook amount mismatch. Expected: ${expectedAmountKobo} kobo, received: ${txData.amount} kobo`,
+        reason: `Webhook amount mismatch. Expected: ${expectedAmountKobo} kobo, received: ${receivedAmountKobo} kobo`,
       });
       return NextResponse.json({ error: "Amount mismatch" }, { status: 200 });
     }

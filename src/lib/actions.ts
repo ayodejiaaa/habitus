@@ -237,6 +237,9 @@ export async function createInspectionRequest(values: any) {
       success: "Inspection request initialized. Redirecting to payment...",
       authorizationUrl,
       reference: paystackReference,
+      email: session.user.email,
+      amount: amountKobo,
+      publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "",
     };
   } catch (error) {
     console.error("Create request error:", error);

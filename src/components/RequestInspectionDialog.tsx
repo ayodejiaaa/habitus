@@ -1,6 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
+import Script from "next/script";
+
+declare global {
+  interface Window {
+    PaystackPop?: any;
+  }
+}
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { InspectionRequestSchema } from "@/lib/schemas";
@@ -93,20 +100,52 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
 
     setIsLoading(true);
     setStep("processing");
-    setPaymentStatusText("Redirecting to Paystack secure checkout...");
+    setPaymentStatusText("Initializing payment session...");
 
     try {
       const formValues = getValues();
       const res = await createInspectionRequest(formValues);
 
-      setIsLoading(false);
       if (res.error) {
+        setIsLoading(false);
         setError(res.error);
         setStep("payment");
+      } else if (res.reference && res.email && res.amount && res.publicKey && window.PaystackPop) {
+        setPaymentStatusText("Opening payment popup...");
+        try {
+          const paystack = new window.PaystackPop();
+          paystack.newTransaction({
+            key: res.publicKey,
+            email: res.email,
+            amount: res.amount,
+            ref: res.reference,
+            onSuccess: (transaction: any) => {
+              setPaymentStatusText("Verifying transaction...");
+              setIsLoading(true);
+              setStep("processing");
+              window.location.href = `/api/payment/verify?reference=${transaction.reference}`;
+            },
+            onCancel: () => {
+              setIsLoading(false);
+              setStep("payment");
+              setError("Payment was cancelled. You can complete the checkout process later.");
+            }
+          });
+        } catch (popupErr: any) {
+          console.error("Paystack inline popup execution failed, falling back to redirect:", popupErr);
+          if (res.authorizationUrl) {
+            window.location.href = res.authorizationUrl;
+          } else {
+            setIsLoading(false);
+            setError("Could not load Paystack checkout page.");
+            setStep("payment");
+          }
+        }
       } else if (res.authorizationUrl) {
-        // Redirect client to Paystack Checkout URL
+        setPaymentStatusText("Redirecting to Paystack secure checkout...");
         window.location.href = res.authorizationUrl;
       } else {
+        setIsLoading(false);
         setError("Invalid response from server action.");
         setStep("payment");
       }
@@ -546,6 +585,7 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
           </div>
         </div>
       )}
+      <Script src="https://js.paystack.co/v1/inline.js" strategy="lazyOnload" />
     </>
   );
 }
