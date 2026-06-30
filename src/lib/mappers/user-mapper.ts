@@ -13,6 +13,7 @@ export function toClientProfileDTO(user: any): ClientProfileDTO {
     id: user.id,
     name: user.name ?? null,
     email: user.email,
+    phone: user.phone ?? null,
     role: user.role,
     emailAuditReports: !!user.emailAuditReports,
     statusChangeAlerts: !!user.statusChangeAlerts,
@@ -25,6 +26,7 @@ export function toAdminUserDTO(user: any): AdminUserDTO {
     id: user.id,
     name: user.name ?? null,
     email: user.email,
+    phone: user.phone ?? null,
     role: user.role,
     createdAt: user.createdAt,
   };
@@ -35,6 +37,7 @@ export function toAuthenticatedUserDTO(user: any): AuthenticatedUserDTO {
     id: user.id,
     name: user.name ?? null,
     email: user.email,
+    phone: user.phone ?? null,
     role: user.role,
     emailVerified: user.emailVerified ? new Date(user.emailVerified) : null,
   };

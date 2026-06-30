@@ -5,7 +5,7 @@ import { adminUserSelect } from "@/lib/database/selects/user-selects";
 import { toAdminUserDTO } from "@/lib/mappers/user-mapper";
 import { sanitizeUserList } from "@/lib/security/user-sanitizer";
 import { Card, CardContent } from "@/components/ui/card";
-import { User, Mail, ShieldAlert, Calendar } from "lucide-react";
+import { User, Mail, ShieldAlert, Calendar, Phone } from "lucide-react";
 import { requireAuthenticatedUser, requireAdminAccess, AuthorizationError } from "@/lib/access-policy";
 import SecurityErrorPage from "@/components/SecurityErrorPage";
 
@@ -52,6 +52,7 @@ export default async function AdminUsersPage() {
               <tr>
                 <th className="px-6 py-4">User</th>
                 <th className="px-6 py-4">Email</th>
+                <th className="px-6 py-4">Phone</th>
                 <th className="px-6 py-4">Role</th>
                 <th className="px-6 py-4">Registered Date</th>
               </tr>
@@ -73,6 +74,16 @@ export default async function AdminUsersPage() {
                       <Mail className="h-4 w-4 text-gray-400" />
                       <span>{u.email}</span>
                     </div>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">
+                    {u.phone ? (
+                      <div className="flex items-center space-x-2">
+                        <Phone className="h-4 w-4 text-gray-400" />
+                        <span>{u.phone}</span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 italic text-xs">Not provided</span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <span

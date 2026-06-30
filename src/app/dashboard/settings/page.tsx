@@ -48,6 +48,7 @@ export default async function SettingsPage() {
         initialUser={{ 
           name: profile.name, 
           email: profile.email,
+          phone: profile.phone,
           emailAuditReports: profile.emailAuditReports,
           statusChangeAlerts: profile.statusChangeAlerts
         }} 

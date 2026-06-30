@@ -38,6 +38,7 @@ export default async function AdminRequestsPage() {
           id: true,
           name: true,
           email: true,
+          phone: true,
         }
       },
       reports: true,
@@ -177,6 +178,12 @@ export default async function AdminRequestsPage() {
                       <Mail className="h-4 w-4 shrink-0 text-gray-400" />
                       <span>Email: {req.user.email}</span>
                     </div>
+                    {req.user.phone && (
+                      <div className="flex items-center space-x-2">
+                        <Phone className="h-4 w-4 shrink-0 text-gray-400" />
+                        <span>Phone: {req.user.phone}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

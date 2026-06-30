@@ -13,6 +13,7 @@ interface SettingsFormProps {
   initialUser: {
     name: string | null;
     email: string;
+    phone: string | null;
     emailAuditReports: boolean;
     statusChangeAlerts: boolean;
   };
@@ -33,6 +34,7 @@ export default function SettingsForm({ initialUser }: SettingsFormProps) {
     defaultValues: {
       name: initialUser.name || "",
       email: initialUser.email,
+      phone: initialUser.phone || "",
     },
   });
 
@@ -167,6 +169,19 @@ export default function SettingsForm({ initialUser }: SettingsFormProps) {
               />
               {profileErrors.email && (
                 <p className="text-red-500 text-xs mt-0.5">{profileErrors.email.message as string}</p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold uppercase text-gray-500">Phone Number</label>
+              <input
+                type="tel"
+                disabled={profileLoading}
+                className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                {...registerProfile("phone")}
+              />
+              {profileErrors.phone && (
+                <p className="text-red-500 text-xs mt-0.5">{profileErrors.phone.message as string}</p>
               )}
             </div>
 

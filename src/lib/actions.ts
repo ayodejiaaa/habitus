@@ -32,7 +32,7 @@ export async function registerUser(values: any) {
       return { error: "Invalid form input." };
     }
 
-    const { name, email, password } = validated.data;
+    const { name, email, password, phone } = validated.data;
     const ip = await getClientIp();
     const cleanEmail = email.toLowerCase().trim();
 
@@ -76,12 +76,14 @@ export async function registerUser(values: any) {
     const hashedPassword = await bcrypt.hash(password, 10);
     
     const sanitizedName = sanitizeText(name);
+    const sanitizedPhone = sanitizeText(phone);
 
     const user = await db.user.create({
       data: {
         name: sanitizedName,
         email: email.toLowerCase().trim(),
         password: hashedPassword,
+        phone: sanitizedPhone,
         role: "CLIENT",
       },
       select: {
@@ -521,8 +523,9 @@ export async function updateProfile(values: any) {
       return { error: "Invalid profile data." };
     }
 
-    const { name, email } = validated.data;
+    const { name, email, phone } = validated.data;
     const sanitizedName = sanitizeText(name);
+    const sanitizedPhone = sanitizeText(phone);
 
     // Check if email changed and is taken
     if (email !== session.user.email) {
@@ -534,7 +537,7 @@ export async function updateProfile(values: any) {
 
     await db.user.update({
       where: { id: session.user.id },
-      data: { name: sanitizedName, email },
+      data: { name: sanitizedName, email, phone: sanitizedPhone },
       select: { id: true },
     });
 

@@ -26,6 +26,7 @@ export default function RegisterForm() {
     defaultValues: {
       name: "",
       email: "",
+      phone: "",
       password: "",
     },
   });
@@ -113,6 +114,20 @@ export default function RegisterForm() {
             />
             {errors.email && (
               <p className="text-red-500 text-xs mt-0.5">{errors.email.message as string}</p>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold uppercase text-gray-500">Phone Number</label>
+            <input
+              type="tel"
+              disabled={isLoading}
+              placeholder="+2348012345678"
+              className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+              {...register("phone")}
+            />
+            {errors.phone && (
+              <p className="text-red-500 text-xs mt-0.5">{errors.phone.message as string}</p>
             )}
           </div>
 
