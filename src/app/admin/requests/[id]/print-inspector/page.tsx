@@ -3,6 +3,23 @@ import { requireAuthenticatedUser, requireAdminAccess } from "@/lib/access-polic
 import { notFound, redirect } from "next/navigation";
 import PrintTrigger from "./print-trigger";
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const req = await db.inspectionRequest.findUnique({
+    where: { id },
+    select: { projectName: true },
+  });
+  if (!req) {
+    return { title: "Habitus_Job_Sheet" };
+  }
+  const cleanProjectName = req.projectName.replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_");
+  return {
+    title: {
+      absolute: `Habitus_${cleanProjectName}`,
+    },
+  };
+}
+
 export default async function PrintInspectorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -151,7 +168,7 @@ export default async function PrintInspectorPage({ params }: { params: Promise<{
 
       {/* Footer Branding Statement */}
       <div className="mt-12 border-t border-gray-200 pt-4 text-center text-[10px] text-gray-400 uppercase tracking-widest print:absolute print:bottom-6 print:w-full print:left-0">
-        Habitus Africa • Build Back Home With Confidence • habitus.africa
+        Habitus Africa • Build Back Home With Confidence • www.habitus.africa
       </div>
     </div>
   );
