@@ -15,7 +15,7 @@ import {
 import { RequestStatus } from "@prisma/client";
 
 import { generateVerificationToken } from "./tokens";
-import { sendEmailVerificationEmail, sendReportIssuedEmail } from "./email";
+import { sendEmailVerificationEmail, sendReportIssuedEmail, sendContactFormEmail } from "./email";
 import { logSecurity } from "./security";
 import { rateLimit, getClientIp } from "./rate-limit";
 import { sanitizeText, sanitizeMultilineText } from "./security/input-security";
@@ -778,7 +778,13 @@ export async function resendVerificationEmail() {
 /**
  * Submit contact form
  */
-export async function submitContactForm(values: { firstName: string; lastName: string; email: string; message: string }) {
+export async function submitContactForm(values: { 
+  firstName: string; 
+  lastName: string; 
+  email: string; 
+  whatsapp?: string; 
+  message: string; 
+}) {
   try {
     const ip = await getClientIp();
     
@@ -801,6 +807,17 @@ export async function submitContactForm(values: { firstName: string; lastName: s
 
     const sanitizedFirstName = sanitizeText(values.firstName);
     const sanitizedLastName = sanitizeText(values.lastName);
+    const sanitizedWhatsapp = values.whatsapp ? sanitizeText(values.whatsapp) : undefined;
+    const sanitizedMessage = sanitizeMultilineText(values.message);
+
+    // Call the Zoho Zeptomail sender
+    await sendContactFormEmail({
+      firstName: sanitizedFirstName,
+      lastName: sanitizedLastName,
+      email: values.email.toLowerCase().trim(),
+      whatsapp: sanitizedWhatsapp,
+      message: sanitizedMessage,
+    });
 
     // Log the security event for audit tracking
     logSecurity("EVIDENCE_SUBMITTED", {
@@ -812,6 +829,6 @@ export async function submitContactForm(values: { firstName: string; lastName: s
     return { success: "Message sent successfully!" };
   } catch (error) {
     console.error("Contact submit error:", error);
-    return { error: "Failed to submit contact form." };
+    return { error: "Failed to submit contact form. Please try again later." };
   }
 }

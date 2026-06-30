@@ -318,3 +318,120 @@ Build Back Home With Confidence.
     console.error("Failed to send report notification email:", error);
   }
 }
+
+export async function sendContactFormEmail(values: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  whatsapp?: string;
+  message: string;
+}) {
+  const apiToken = process.env.ZEPTOMAIL_API_TOKEN;
+  const fromEmail = process.env.ZEPTOMAIL_FROM_EMAIL || "contact@habitus.africa";
+  const fromName = process.env.ZEPTOMAIL_FROM_NAME || "Habitus Support";
+  const bounceAddress = process.env.ZEPTOMAIL_BOUNCE_ADDRESS || "bounce@bounce.habitus.africa";
+  const apiUrl = process.env.ZEPTOMAIL_API_URL || "https://api.zeptomail.com/v1.1/email";
+
+  const subject = `New Contact Form Submission from ${values.firstName} ${values.lastName}`;
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: sans-serif; line-height: 1.6; color: #333333; background-color: #F7F5F2; padding: 20px; }
+    .card { max-width: 600px; margin: 0 auto; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 32px; }
+    .logo { color: #1F7A5A; font-size: 24px; font-weight: bold; margin-bottom: 24px; }
+    .field { margin-bottom: 16px; }
+    .label { font-weight: bold; color: #1F7A5A; display: block; font-size: 11px; text-transform: uppercase; margin-bottom: 4px; }
+    .value { font-size: 15px; color: #2D3748; }
+    .message-box { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 16px; margin-top: 8px; white-space: pre-wrap; }
+    .footer { margin-top: 32px; border-top: 1px solid #E2E8F0; padding-top: 16px; font-size: 14px; color: #666666; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">Habitus Contact Form</div>
+    <div class="field">
+      <span class="label">Sender Name</span>
+      <span class="value">${values.firstName} ${values.lastName}</span>
+    </div>
+    <div class="field">
+      <span class="label">Email Address</span>
+      <span class="value">${values.email}</span>
+    </div>
+    ${values.whatsapp ? `
+    <div class="field">
+      <span class="label">WhatsApp Number</span>
+      <span class="value">${values.whatsapp}</span>
+    </div>
+    ` : ""}
+    <div class="field">
+      <span class="label">Message</span>
+      <div class="message-box">${values.message}</div>
+    </div>
+    <div class="footer">
+      Habitus Platform Notifications
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+
+  const textContent = `
+New Contact Form Submission:
+
+Sender Name: ${values.firstName} ${values.lastName}
+Email Address: ${values.email}
+${values.whatsapp ? `WhatsApp Number: ${values.whatsapp}\n` : ""}
+Message:
+${values.message}
+  `.trim();
+
+  // Fallback logging in local dev if no apiToken is configured
+  if (!apiToken || apiToken === "fake-key") {
+    console.warn("Zoho Zeptomail API token not configured. Contact email payload:");
+    console.log(textContent);
+    return;
+  }
+
+  const authHeader = apiToken.startsWith("Zoho-") ? apiToken : `Zoho-enczapitoken ${apiToken}`;
+
+  const payload = {
+    bounce_address: bounceAddress,
+    from: {
+      address: fromEmail,
+      name: fromName,
+    },
+    to: [
+      {
+        email_address: {
+          address: "contact@habitus.africa",
+          name: "Habitus Support",
+        },
+      },
+    ],
+    subject: subject,
+    htmlbody: htmlContent,
+    textbody: textContent,
+  };
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": authHeader,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Zeptomail API responded with status ${response.status}: ${errorText}`);
+    }
+  } catch (error) {
+    console.error("Failed to send contact form email via Zoho Zeptomail:", error);
+    throw error;
+  }
+}

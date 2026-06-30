@@ -9,6 +9,7 @@ export default function ContactForm() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -16,14 +17,20 @@ export default function ContactForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!firstName || !lastName || !email || !message) {
-      setErrorMessage("All fields are required.");
+      setErrorMessage("Please fill in all required fields.");
       return;
     }
     setErrorMessage("");
     setStatus("submitting");
 
     try {
-      const res = await submitContactForm({ firstName, lastName, email, message });
+      const res = await submitContactForm({ 
+        firstName, 
+        lastName, 
+        email, 
+        whatsapp: whatsapp || undefined, 
+        message 
+      });
       if (res?.error) {
         setStatus("error");
         setErrorMessage(res.error);
@@ -32,6 +39,7 @@ export default function ContactForm() {
         setFirstName("");
         setLastName("");
         setEmail("");
+        setWhatsapp("");
         setMessage("");
       }
     } catch (err) {
@@ -106,6 +114,18 @@ export default function ContactForm() {
               placeholder="john@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold uppercase text-gray-500">WhatsApp Phone Number (Optional)</label>
+            <input
+              type="tel"
+              disabled={status === "submitting"}
+              placeholder="+234..."
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(e.target.value)}
               className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
             />
           </div>
