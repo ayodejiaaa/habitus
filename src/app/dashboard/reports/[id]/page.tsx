@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MapPin, Calendar, ShieldCheck, AlertCircle, AlertOctagon, HelpCircle, Folder } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, ShieldCheck, AlertCircle, AlertOctagon, HelpCircle, Folder, Download } from "lucide-react";
 import { requireAuthenticatedUser, requireReportAccess, AuthorizationError } from "@/lib/access-policy";
 import SecurityErrorPage from "@/components/SecurityErrorPage";
 import { validateMediaUrl } from "@/lib/media/validators";
@@ -142,10 +142,15 @@ export default async function ReportDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-8 pb-16">
       {/* Back button */}
-      <div>
+      <div className="flex justify-between items-center">
         <Link href={isAdmin ? "/admin/reports" : "/dashboard/reports"}>
           <Button variant="ghost" size="sm" className="flex items-center gap-1 font-bold">
             <ArrowLeft className="h-4 w-4" /> Back to Reports
+          </Button>
+        </Link>
+        <Link href={`/dashboard/reports/${id}/print-client`} target="_blank">
+          <Button size="sm" className="font-bold flex items-center gap-1.5 bg-primary text-white hover:bg-primary/95 cursor-pointer">
+            <Download className="h-4 w-4" /> Download Report (PDF)
           </Button>
         </Link>
       </div>
