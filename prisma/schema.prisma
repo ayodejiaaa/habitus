@@ -22,10 +22,12 @@ enum RequestStage {
 }
 
 enum RequestStatus {
-  SUBMITTED
+  PENDING_PAYMENT
+  PAYMENT_VERIFIED
+  INSPECTION_SCHEDULED
   IN_PROGRESS
-  REPORT_READY
   COMPLETED
+  ISSUED
 }
 
 enum AssessmentStatus {
@@ -98,8 +100,17 @@ model InspectionRequest {
   siteContactPhone    String
   notes               String?
   specialInstructions String?
-  status              RequestStatus      @default(SUBMITTED)
-  paymentStatus       String             @default("PAID")
+  status              RequestStatus      @default(PENDING_PAYMENT)
+  paymentStatus       String             @default("UNPAID")
+  paystackReference   String?            @unique
+  paystackAuthUrl     String?
+  paymentProvider     String?            @default("PAYSTACK")
+  paymentEnvironment   String?            @default("test")
+  paidAt              DateTime?
+  verifiedAt          DateTime?
+  verificationResponse Json?
+  webhookProcessed    Boolean            @default(false)
+  webhookProcessedAt  DateTime?
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
   reports             InspectionReport[]

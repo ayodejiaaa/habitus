@@ -33,10 +33,12 @@ export default function StatusSelect({ requestId, currentStatus, isReportIssued 
       disabled={loading || isReportIssued}
       className="bg-white border border-border rounded-md px-2.5 py-1.5 text-xs font-semibold text-charcoal focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
     >
-      <option value="SUBMITTED">Submitted</option>
+      <option value="PENDING_PAYMENT" disabled>Pending Payment</option>
+      <option value="PAYMENT_VERIFIED" disabled>Payment Verified</option>
+      <option value="INSPECTION_SCHEDULED">Inspection Scheduled</option>
       <option value="IN_PROGRESS">In Progress</option>
-      <option value="REPORT_READY">Report Ready</option>
       <option value="COMPLETED">Completed</option>
+      <option value="ISSUED">Report Issued</option>
     </select>
   );
 }

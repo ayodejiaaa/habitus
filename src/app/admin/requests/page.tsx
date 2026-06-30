@@ -74,9 +74,15 @@ export default async function AdminRequestsPage() {
                     <Calendar className="h-3.5 w-3.5" />
                     <span>Requested {new Date(req.createdAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</span>
                     <span className="mx-2 text-gray-300">|</span>
-                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                      Paid (₦{req.service?.price.toLocaleString() || "350,000"})
-                    </span>
+                    {req.paymentStatus === "PAID" ? (
+                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        Paid (₦{req.service?.price.toLocaleString() || "350,000"})
+                      </span>
+                    ) : (
+                      <span className="bg-amber-50 text-amber-700 border border-amber-100 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        Unpaid (₦{req.service?.price.toLocaleString() || "350,000"})
+                      </span>
+                    )}
                   </div>
                 </div>
                 {/* Status management controls */}
@@ -108,6 +114,38 @@ export default async function AdminRequestsPage() {
               </div>
 
               <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
+                {/* Payment Diagnostics (Admin Only) */}
+                <div className="md:col-span-2 bg-blue-50 border border-blue-100 rounded-lg p-4 text-xs text-blue-800 space-y-2">
+                  <h5 className="font-black text-blue-900 uppercase tracking-wider text-[10px]">Paystack Diagnostics (Admin-Only)</h5>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                    <div>
+                      <span className="font-bold text-[9px] uppercase text-blue-500 block">Reference</span>
+                      <span className="font-mono text-xs block truncate max-w-[150px]" title={req.paystackReference || "N/A"}>
+                        {req.paystackReference || "N/A"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-[9px] uppercase text-blue-500 block">Environment</span>
+                      <span className="uppercase text-xs font-semibold">{req.paymentEnvironment || "N/A"}</span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-[9px] uppercase text-blue-500 block">Payment Status</span>
+                      <span className="uppercase text-xs font-bold">{req.paymentStatus}</span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-[9px] uppercase text-blue-500 block">Verified At</span>
+                      <span className="text-xs">
+                        {req.verifiedAt ? new Date(req.verifiedAt).toLocaleString() : "Unverified"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-[9px] uppercase text-blue-500 block">Webhook Processed</span>
+                      <span className="text-xs font-semibold">
+                        {req.webhookProcessed ? `Yes (${req.webhookProcessedAt ? new Date(req.webhookProcessedAt).toLocaleDateString() : ""})` : "No"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 {/* Project Location & Contact */}
                 <div className="space-y-3">
                   <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Site Information</h4>

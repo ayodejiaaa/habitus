@@ -112,7 +112,7 @@ export async function registerUser(values: any) {
 export async function createInspectionRequest(values: any) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session?.user?.email) {
       return { error: "You must be logged in to request an inspection." };
     }
 
@@ -138,6 +138,14 @@ export async function createInspectionRequest(values: any) {
     }
 
     const data = validated.data;
+    const service = await db.inspectionService.findUnique({
+      where: { id: data.serviceId },
+      select: { price: true },
+    });
+    if (!service) {
+      return { error: "Selected inspection type does not exist." };
+    }
+
     const sanitizedProjectName = sanitizeText(data.projectName);
     const sanitizedPropertyAddress = sanitizeText(data.propertyAddress);
     const sanitizedCity = sanitizeText(data.city);
@@ -148,7 +156,17 @@ export async function createInspectionRequest(values: any) {
     const sanitizedNotes = sanitizeMultilineText(data.notes);
     const sanitizedSpecialInstructions = sanitizeMultilineText(data.specialInstructions);
 
-    await db.inspectionRequest.create({
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      console.error("PAYSTACK_SECRET_KEY is missing from environment variables.");
+      return { error: "Payment gateway configuration is missing on the server." };
+    }
+
+    // Generate unique Paystack reference
+    const paystackReference = `hab_ref_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+    const paymentEnv = process.env.PAYSTACK_ENVIRONMENT || "test";
+
+    // 1. Create request record in PENDING_PAYMENT / UNPAID state
+    const request = await db.inspectionRequest.create({
       data: {
         userId: session.user.id,
         projectName: sanitizedProjectName,
@@ -163,14 +181,60 @@ export async function createInspectionRequest(values: any) {
         siteContactPhone: sanitizedSiteContactPhone,
         notes: sanitizedNotes || null,
         specialInstructions: sanitizedSpecialInstructions || null,
-        status: "SUBMITTED",
-        paymentStatus: values.paymentStatus || "PAID",
+        status: "PENDING_PAYMENT",
+        paymentStatus: "UNPAID",
+        paystackReference,
+        paymentEnvironment: paymentEnv,
       },
+    });
+
+    logSecurity("PAYMENT_INITIATED", {
+      userId,
+      resourceType: "BOOKING_PAYMENT_INIT",
+      resourceId: request.id,
+      reason: `Initialized Paystack transaction reference: ${paystackReference} (Env: ${paymentEnv})`,
+    });
+
+    // 2. Initialize Paystack Transaction
+    const amountKobo = Math.round(service.price * 100);
+    const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: session.user.email,
+        amount: amountKobo,
+        reference: paystackReference,
+        callback_url: `${process.env.APP_URL}/api/payment/verify?reference=${paystackReference}`,
+      }),
+    });
+
+    const paystackData = await paystackRes.json();
+    if (!paystackRes.ok || !paystackData.status || !paystackData.data?.authorization_url) {
+      console.error("Paystack transaction initialization failed:", paystackData);
+      // Clean up/delete the created request so we don't leave orphaned requests
+      await db.inspectionRequest.delete({ where: { id: request.id } });
+      return { error: "Failed to initialize payment with Paystack. Please try again." };
+    }
+
+    // 3. Save the Paystack authorization URL to DB
+    const authorizationUrl = paystackData.data.authorization_url;
+    await db.inspectionRequest.update({
+      where: { id: request.id },
+      data: { paystackAuthUrl: authorizationUrl },
+      select: { id: true },
     });
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/requests");
-    return { success: "Inspection request submitted successfully!" };
+
+    return {
+      success: "Inspection request initialized. Redirecting to payment...",
+      authorizationUrl,
+      reference: paystackReference,
+    };
   } catch (error) {
     console.error("Create request error:", error);
     return { error: "Failed to submit request." };
@@ -198,10 +262,34 @@ export async function updateRequestStatus(requestId: string, status: RequestStat
       return { error: integrity.reason || "This request cannot be modified because an inspection report has already been issued." };
     }
 
+    const request = await db.inspectionRequest.findUnique({
+      where: { id: requestId },
+      select: { status: true },
+    });
+    if (!request) {
+      return { error: "Request not found." };
+    }
+
+    // Strict state transitions checks
+    if (request.status === "PENDING_PAYMENT") {
+      return { error: "Cannot modify status of a request that is pending payment." };
+    }
+
+    if (status === "PAYMENT_VERIFIED" || status === "PENDING_PAYMENT") {
+      return { error: "Payment verification states can only be set by the payment gateway." };
+    }
+
     await db.inspectionRequest.update({
       where: { id: requestId },
       data: { status },
       select: { id: true },
+    });
+
+    logSecurity("BOOKING_STATE_TRANSITION", {
+      userId: session.user.id,
+      resourceType: "REQUEST",
+      resourceId: requestId,
+      reason: `Transitioned request ${requestId} status from ${request.status} to ${status} (Admin manually)`,
     });
 
     revalidatePath("/admin/requests");
@@ -356,10 +444,10 @@ export async function publishInspectionReport(values: any) {
           resourceId: report.id,
         });
 
-        // 3. Update Request Status to REPORT_READY
+        // 3. Update Request Status to ISSUED
         await tx.inspectionRequest.update({
           where: { id: requestId },
-          data: { status: "REPORT_READY" },
+          data: { status: "ISSUED" },
         });
       } else {
         // Update Request Status to IN_PROGRESS when saved as draft

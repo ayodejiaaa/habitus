@@ -6,7 +6,20 @@ import bcrypt from "bcryptjs";
 import { rateLimit, isAccountLocked, incrementFailedLoginAttempts, resetFailedLoginAttempts, getClientIp } from "@/lib/rate-limit";
 import { logSecurity } from "@/lib/security";
 
-export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
+const mockAuth = async () => {
+  const globalMockUser = (global as any).__MOCK_AUTH_USER;
+  return globalMockUser ? { user: globalMockUser } : null;
+};
+
+const authResult = process.env.MOCK_AUTH === "true"
+  ? { 
+      handlers: { GET: async () => {}, POST: async () => {} } as any, 
+      auth: mockAuth as any, 
+      signIn: async () => {}, 
+      signOut: async () => {}, 
+      unstable_update: async () => {} 
+    }
+  : NextAuth({
   ...authConfig,
   secret: process.env.AUTH_SECRET,
   trustHost: true,
@@ -136,3 +149,5 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
     },
   },
 });
+
+export const { handlers, auth, signIn, signOut, unstable_update } = authResult;

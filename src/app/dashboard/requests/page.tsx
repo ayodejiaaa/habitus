@@ -6,6 +6,8 @@ import RequestInspectionDialog from "@/components/RequestInspectionDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Phone, User, Calendar, Info } from "lucide-react";
 import { getInspectionServices } from "@/lib/services";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Requests",
@@ -31,14 +33,18 @@ export default async function RequestsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "SUBMITTED":
-        return "bg-blue-50 text-blue-700 border-blue-100";
-      case "IN_PROGRESS":
-        return "bg-amber-50 text-amber-700 border-amber-100";
-      case "REPORT_READY":
+      case "PENDING_PAYMENT":
+        return "bg-yellow-50 text-yellow-700 border-yellow-100";
+      case "PAYMENT_VERIFIED":
         return "bg-emerald-50 text-emerald-700 border-emerald-100";
+      case "INSPECTION_SCHEDULED":
+        return "bg-indigo-50 text-indigo-700 border-indigo-100";
+      case "IN_PROGRESS":
+        return "bg-blue-50 text-blue-700 border-blue-100";
       case "COMPLETED":
-        return "bg-gray-50 text-gray-700 border-gray-100";
+        return "bg-teal-50 text-teal-700 border-teal-100";
+      case "ISSUED":
+        return "bg-purple-50 text-purple-700 border-purple-100";
       default:
         return "bg-gray-50 text-gray-700 border-gray-100";
     }
@@ -81,11 +87,17 @@ export default async function RequestsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-bold px-2.5 py-1 rounded-full">
-                    Paid (₦{req.service?.price.toLocaleString() || "350,000"})
-                  </span>
+                  {req.paymentStatus === "PAID" ? (
+                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-bold px-2.5 py-1 rounded-full">
+                      Paid (₦{req.service?.price.toLocaleString() || "350,000"})
+                    </span>
+                  ) : (
+                    <span className="bg-amber-50 text-amber-700 border border-amber-100 text-[10px] font-bold px-2.5 py-1 rounded-full">
+                      Unpaid (₦{req.service?.price.toLocaleString() || "350,000"})
+                    </span>
+                  )}
                   <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${getStatusColor(req.status)}`}>
-                    {req.status}
+                    {req.status.replace("_", " ")}
                   </span>
                 </div>
               </div>
@@ -121,6 +133,16 @@ export default async function RequestsPage() {
                   <div className="bg-gray-50 rounded p-3 text-xs text-gray-500 leading-relaxed">
                     <span className="font-bold text-[10px] uppercase text-gray-400 block mb-1">Notes</span>
                     {req.notes}
+                  </div>
+                )}
+
+                {req.paymentStatus !== "PAID" && req.paystackAuthUrl && (
+                  <div className="pt-2 border-t border-gray-50 flex justify-end">
+                    <Link href={req.paystackAuthUrl} target="_blank" rel="noopener noreferrer">
+                      <Button size="sm" className="font-bold text-xs bg-amber-500 hover:bg-amber-600 text-white cursor-pointer">
+                        💳 Complete Checkout
+                      </Button>
+                    </Link>
                   </div>
                 )}
               </CardContent>

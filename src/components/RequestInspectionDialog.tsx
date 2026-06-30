@@ -29,11 +29,6 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
 
   // Step states: "service" | "details" | "payment" | "processing" | "success"
   const [step, setStep] = useState<"service" | "details" | "payment" | "processing" | "success">("service");
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "transfer">("card");
-  const [cardName, setCardName] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvv, setCardCvv] = useState("");
   const [paymentStatusText, setPaymentStatusText] = useState("Securing connection...");
 
   const {
@@ -43,6 +38,7 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
     reset,
     setValue,
     watch,
+    getValues,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(InspectionRequestSchema),
@@ -65,36 +61,6 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
   const serviceId = watch("serviceId");
   const selectedService = services.find((s) => s.id === serviceId);
 
-  const onSubmit = async (data: any) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const res = await createInspectionRequest({
-        ...data,
-        paymentStatus: "PAID",
-      });
-      
-      setIsLoading(false);
-      if (res.error) {
-        setError(res.error);
-        setStep("payment");
-      } else {
-        setStep("success");
-        reset();
-        // Reset card details
-        setCardName("");
-        setCardNumber("");
-        setCardExpiry("");
-        setCardCvv("");
-      }
-    } catch (err: any) {
-      setIsLoading(false);
-      setError(err?.message || "An unexpected error occurred during submission.");
-      setStep("payment");
-    }
-  };
-
   const handleProceedToPayment = async (e: React.MouseEvent) => {
     e.preventDefault();
     const isValid = await trigger([
@@ -113,16 +79,9 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
     }
   };
 
-  const handleSimulatedPayment = async (e: React.FormEvent) => {
+  const handlePaystackCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    if (paymentMethod === "card") {
-      if (!cardName || !cardNumber || !cardExpiry || !cardCvv) {
-        setError("Please fill out all card details for the simulation.");
-        return;
-      }
-    }
 
     // Trigger validation on ALL fields first!
     const isFormValid = await trigger();
@@ -132,25 +91,30 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
       return;
     }
 
+    setIsLoading(true);
     setStep("processing");
+    setPaymentStatusText("Redirecting to Paystack secure checkout...");
 
-    // Cycle through simulated loading states
-    setPaymentStatusText("Securing SSL connection...");
-    setTimeout(() => {
-      setPaymentStatusText("Contacting card issuer network...");
-      setTimeout(() => {
-        const amt = selectedService ? `₦${selectedService.price.toLocaleString()}` : "₦350,000";
-        setPaymentStatusText(`Authorizing ${amt} charge...`);
-        setTimeout(async () => {
-          try {
-            await handleSubmit(onSubmit)();
-          } catch (err: any) {
-            setError(err?.message || "Payment submission failed.");
-            setStep("payment");
-          }
-        }, 800);
-      }, 800);
-    }, 800);
+    try {
+      const formValues = getValues();
+      const res = await createInspectionRequest(formValues);
+
+      setIsLoading(false);
+      if (res.error) {
+        setError(res.error);
+        setStep("payment");
+      } else if (res.authorizationUrl) {
+        // Redirect client to Paystack Checkout URL
+        window.location.href = res.authorizationUrl;
+      } else {
+        setError("Invalid response from server action.");
+        setStep("payment");
+      }
+    } catch (err: any) {
+      setIsLoading(false);
+      setError(err?.message || "Payment submission failed.");
+      setStep("payment");
+    }
   };
 
   const handleClose = () => {
@@ -537,7 +501,7 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
 
             {/* Step: Payment Gateway Checkout */}
             <div className={cn(step !== "payment" && "hidden")}>
-              <form onSubmit={handleSimulatedPayment} className="space-y-6">
+              <form onSubmit={handlePaystackCheckout} className="space-y-6">
                 {error && (
                   <div className="bg-red-50 text-red-700 text-xs font-semibold p-3 rounded border border-red-200">
                     {error}
@@ -557,109 +521,12 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
                   </div>
                 </div>
 
-                {/* Payment Methods */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase text-gray-500 block">Select Payment Method</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod("card")}
-                      className={`p-3 rounded-lg border text-sm font-bold flex flex-col items-center justify-center gap-1.5 transition-all ${
-                        paymentMethod === "card"
-                          ? "border-primary bg-primary/5 text-primary"
-                          : "border-border bg-white text-gray-600 hover:bg-gray-50"
-                      }`}
-                    >
-                      <span className="text-lg">💳</span>
-                      <span>Debit / Credit Card</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod("transfer")}
-                      className={`p-3 rounded-lg border text-sm font-bold flex flex-col items-center justify-center gap-1.5 transition-all ${
-                        paymentMethod === "transfer"
-                          ? "border-primary bg-primary/5 text-primary"
-                          : "border-border bg-white text-gray-600 hover:bg-gray-50"
-                      }`}
-                    >
-                      <span className="text-lg">🏦</span>
-                      <span>Bank Transfer</span>
-                    </button>
-                  </div>
+                <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-xs text-blue-800 space-y-2">
+                  <h5 className="font-bold text-blue-900 uppercase tracking-wider">Secure Payment via Paystack</h5>
+                  <p className="leading-relaxed">
+                    You will be redirected to Paystack's secure checkout page to complete your payment. We support cards, bank transfers, USSD, and mobile money.
+                  </p>
                 </div>
-
-                {/* Card input forms */}
-                {paymentMethod === "card" && (
-                  <div className="space-y-4 border-t border-gray-100 pt-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold uppercase text-gray-500">Cardholder Name</label>
-                      <input
-                        type="text"
-                        placeholder="Chidi Okafor"
-                        required
-                        value={cardName}
-                        onChange={(e) => setCardName(e.target.value)}
-                        className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold uppercase text-gray-500">Card Number</label>
-                      <input
-                        type="text"
-                        placeholder="4000 1234 5678 9010"
-                        maxLength={19}
-                        required
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value)}
-                        className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold uppercase text-gray-500">Expiry Date</label>
-                        <input
-                          type="text"
-                          placeholder="MM / YY"
-                          maxLength={5}
-                          required
-                          value={cardExpiry}
-                          onChange={(e) => setCardExpiry(e.target.value)}
-                          className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold uppercase text-gray-500">CVV</label>
-                        <input
-                          type="password"
-                          placeholder="•••"
-                          maxLength={3}
-                          required
-                          value={cardCvv}
-                          onChange={(e) => setCardCvv(e.target.value)}
-                          className="w-full bg-white border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Simulated Bank Transfer instructions */}
-                {paymentMethod === "transfer" && (
-                  <div className="space-y-4 border-t border-gray-100 pt-4 bg-primary/5 p-4 rounded-lg border border-primary/15">
-                    <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Sterling Bank Transfer</h4>
-                    <p className="text-xs text-gray-600 leading-relaxed">
-                      To complete this inspection order, please transfer **₦{selectedService ? selectedService.price.toLocaleString() : "350,000"}** to the following account:
-                    </p>
-                    <div className="space-y-1.5 text-xs text-charcoal font-semibold">
-                      <div>Bank: <span className="text-primary font-bold">Sterling Bank PLC</span></div>
-                      <div>Account Name: <span className="text-primary font-bold">Habitus Verification Ltd</span></div>
-                      <div>Account Number: <span className="text-primary font-bold">0012345678</span></div>
-                    </div>
-                    <p className="text-[10px] text-gray-400 mt-2">
-                      *Please click the payment button below once the transfer is completed to submit your order. Our coordinators will verify the transaction before dispatching the auditor.
-                    </p>
-                  </div>
-                )}
 
                 {/* Buttons */}
                 <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-6">
@@ -671,7 +538,7 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
                     Back to Details
                   </Button>
                   <Button type="submit" className="font-bold flex items-center gap-1.5">
-                    Pay ₦{selectedService ? selectedService.price.toLocaleString() : "350,000"} ($250 USD)
+                    Pay ₦{selectedService ? selectedService.price.toLocaleString() : "350,000"} via Paystack
                   </Button>
                 </div>
               </form>

@@ -30,10 +30,10 @@ export default async function DashboardPage() {
 
   const totalRequests = requests.length;
   const completedReports = requests.filter(
-    (r) => r.status === "REPORT_READY" || r.status === "COMPLETED"
+    (r) => r.status === "ISSUED" || r.status === "COMPLETED"
   ).length;
   const pendingRequests = requests.filter(
-    (r) => r.status === "SUBMITTED" || r.status === "IN_PROGRESS"
+    (r) => r.status === "PENDING_PAYMENT" || r.status === "PAYMENT_VERIFIED" || r.status === "INSPECTION_SCHEDULED" || r.status === "IN_PROGRESS"
   ).length;
 
   const recentRequests = requests.slice(0, 5);
@@ -50,14 +50,18 @@ export default async function DashboardPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "SUBMITTED":
-        return "bg-blue-100 text-blue-800";
+      case "PENDING_PAYMENT":
+        return "bg-yellow-100 text-yellow-800 border border-yellow-200";
+      case "PAYMENT_VERIFIED":
+        return "bg-emerald-100 text-emerald-800 border border-emerald-200";
+      case "INSPECTION_SCHEDULED":
+        return "bg-indigo-100 text-indigo-800 border border-indigo-200";
       case "IN_PROGRESS":
-        return "bg-amber-100 text-amber-800";
-      case "REPORT_READY":
-        return "bg-emerald-100 text-emerald-800";
+        return "bg-blue-100 text-blue-800 border border-blue-200";
       case "COMPLETED":
-        return "bg-gray-100 text-gray-800";
+        return "bg-teal-100 text-teal-800 border border-teal-200";
+      case "ISSUED":
+        return "bg-purple-100 text-purple-800 border border-purple-200";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -159,7 +163,7 @@ export default async function DashboardPage() {
                     <p className="text-xs text-gray-500 mt-0.5">{req.city}, {req.country}</p>
                   </div>
                   <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${getStatusColor(req.status)}`}>
-                    {req.status}
+                    {req.status.replace("_", " ")}
                   </span>
                 </div>
               ))}
