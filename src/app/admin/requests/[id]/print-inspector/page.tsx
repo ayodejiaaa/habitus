@@ -3,7 +3,9 @@ import { requireAuthenticatedUser, requireAdminAccess } from "@/lib/access-polic
 import { notFound, redirect } from "next/navigation";
 import PrintTrigger from "./print-trigger";
 
-export default async function PrintInspectorPage({ params }: { params: { id: string } }) {
+export default async function PrintInspectorPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
   // 1. Authenticate and Authorize
   try {
     const user = await requireAuthenticatedUser();
@@ -14,7 +16,7 @@ export default async function PrintInspectorPage({ params }: { params: { id: str
 
   // 2. Fetch the specific request, including service details
   const req = await db.inspectionRequest.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       service: true,
     },
