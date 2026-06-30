@@ -36,20 +36,7 @@ export function sanitizeMultilineText(input: string | null | undefined): string 
   return escapeHtml(clean).trim();
 }
 
-/**
- * Safe HTML sanitization. Strips scripts and event handlers but preserves safe format tags.
- * Runs in pure JS without browser-simulated environment (jsdom) requirements.
- */
-export function sanitizeHtml(input: string | null | undefined): string {
-  if (!input) return "";
-  let clean = input.replace(/<!--[\s\S]*?-->/g, "");
-  // Strip dangerous tags entirely (script, iframe, style, object, embed)
-  clean = clean.replace(/<(script|iframe|style|object|embed)[\s\S]*?>[\s\S]*?<\/\1>/gi, "");
-  // Remove dangerous attributes like inline event handlers and javascript protocols
-  clean = clean.replace(/on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]*)/gi, "");
-  clean = clean.replace(/href\s*=\s*["']\s*javascript:[\s\S]*?["']/gi, "");
-  return clean.trim();
-}
+
 
 /**
  * Protocol validator for URL attributes. Whitelists only http: and https:.
