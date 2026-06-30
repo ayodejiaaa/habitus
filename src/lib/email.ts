@@ -327,7 +327,9 @@ export async function sendContactFormEmail(values: {
   message: string;
 }) {
   const apiToken = process.env.ZEPTOMAIL_API_TOKEN;
-  const fromEmail = process.env.ZEPTOMAIL_FROM_EMAIL || "contact@habitus.africa";
+  const fromEmail = process.env.ZEPTOMAIL_FROM_EMAIL 
+    ? process.env.ZEPTOMAIL_FROM_EMAIL.replace(/^contact@/i, "noreply@") 
+    : "noreply@habitus.africa";
   const fromName = process.env.ZEPTOMAIL_FROM_NAME || "Habitus Support";
   const bounceAddress = process.env.ZEPTOMAIL_BOUNCE_ADDRESS || "bounce@bounce.habitus.africa";
   const apiUrl = process.env.ZEPTOMAIL_API_URL || "https://api.zeptomail.com/v1.1/email";
