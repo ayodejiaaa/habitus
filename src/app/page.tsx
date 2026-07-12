@@ -29,7 +29,7 @@ export default async function HomePage() {
               </div>
               
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-charcoal leading-tight">
-                Build Back Home <span className="text-primary">With Confidence.</span>
+                Independent Property Verification <span className="text-primary">Across Nigeria.</span>
               </h1>
               
               <p className="text-lg text-gray-600 max-w-xl mx-auto lg:mx-0 leading-relaxed">
