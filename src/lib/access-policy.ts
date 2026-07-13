@@ -50,7 +50,11 @@ export async function requireReportAccess(reportId: string, user: { id: string; 
   const report = await db.inspectionReport.findUnique({
     where: { id: reportId },
     include: {
-      request: true,
+      request: {
+        include: {
+          service: true,
+        },
+      },
       mediaAssets: true,
     },
   });

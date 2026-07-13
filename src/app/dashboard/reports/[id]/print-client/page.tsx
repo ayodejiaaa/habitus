@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { requireAuthenticatedUser, requireReportAccess } from "@/lib/access-policy";
+import { requireAuthenticatedUser, requireReportAccess, AuthorizationError } from "@/lib/access-policy";
 import { notFound, redirect } from "next/navigation";
 import PrintTrigger from "./print-trigger";
 import { validateMediaUrl } from "@/lib/media/validators";
@@ -33,29 +33,14 @@ export default async function PrintClientReportPage({ params }: { params: Promis
   let report;
   try {
     const user = await requireAuthenticatedUser();
-    const dbReport = await db.inspectionReport.findUnique({
-      where: { id },
-      include: {
-        request: {
-          include: {
-            service: true,
-          },
-        },
-        mediaAssets: true,
-      },
-    });
-
-    if (!dbReport) {
-      notFound();
+    report = await requireReportAccess(id, user);
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      if (error.code === "UNAUTHENTICATED" || error.code === "UNAUTHORIZED") {
+        redirect("/login");
+      }
     }
-
-    const isAuthorized = user.role === "ADMIN" || (dbReport.request.userId === user.id && dbReport.status === "ISSUED");
-    if (!isAuthorized) {
-      redirect("/login");
-    }
-    report = dbReport;
-  } catch {
-    redirect("/login");
+    notFound();
   }
 
   const findingsList = report.findings.split("\n").filter((line) => line.trim() !== "");

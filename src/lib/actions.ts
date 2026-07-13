@@ -523,7 +523,8 @@ export async function updateProfile(values: any) {
       return { error: "Invalid profile data." };
     }
 
-    const { name, email, phone } = validated.data;
+    const { name, phone } = validated.data;
+    const email = validated.data.email.toLowerCase().trim();
     const sanitizedName = sanitizeText(name);
     const sanitizedPhone = sanitizeText(phone);
 
