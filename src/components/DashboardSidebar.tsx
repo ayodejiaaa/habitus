@@ -46,8 +46,8 @@ export default function DashboardSidebar({ role }: SidebarProps) {
       {/* Mobile Top Bar */}
       <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-border sticky top-0 z-40 w-full shrink-0">
         <Link href="/" className="flex items-center space-x-2">
+          <img src="/images/habitus-icon.png" alt="" className="h-6 w-6" />
           <span className="text-xl font-black tracking-tight text-primary">Habitus</span>
-          <span className="h-2 w-2 rounded-full bg-accent"></span>
         </Link>
         <button
           onClick={() => setIsOpen(true)}
@@ -79,8 +79,8 @@ export default function DashboardSidebar({ role }: SidebarProps) {
         {/* Brand Header */}
         <div className="p-6 border-b border-border flex items-center justify-between">
           <Link href="/" className="flex items-center space-x-2" onClick={() => setIsOpen(false)}>
+            <img src="/images/habitus-icon.png" alt="" className="h-6 w-6" />
             <span className="text-xl font-extrabold tracking-tight text-primary">Habitus</span>
-            <span className="h-2 w-2 rounded-full bg-accent"></span>
           </Link>
           <div className="flex items-center space-x-2">
             <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-primary/10 text-primary">
