@@ -144,7 +144,7 @@ export default async function HomePage() {
             {/* Image (Left) */}
             <div className="lg:col-span-5 relative rounded-2xl overflow-hidden shadow-2xl border border-border group bg-gray-50">
               <img
-                src="/images/inspector_at_site.png"
+                src="/images/inspector_at_site.jpg"
                 alt="Certified Habitus Inspector conducting structural verification at a residential site in Lagos, Nigeria"
                 className="w-full h-auto object-cover group-hover:scale-[1.02] transition-transform duration-500"
               />

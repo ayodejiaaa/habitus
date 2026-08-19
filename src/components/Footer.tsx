@@ -9,8 +9,8 @@ export default function Footer() {
           <div className="flex flex-col space-y-3">
             <div className="space-y-0.5">
               <div className="flex items-center space-x-2">
+                <img src="/images/habitus-icon.png" alt="" className="h-6 w-6" />
                 <span className="text-xl font-black tracking-tight text-primary">Habitus</span>
-                <span className="h-2 w-2 rounded-full bg-accent"></span>
               </div>
               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                 A Product of{" "}

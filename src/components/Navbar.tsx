@@ -13,10 +13,10 @@ export default async function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2">
+          <img src="/images/habitus-icon.png" alt="" className="h-8 w-8" />
           <span className="text-2xl font-black tracking-tight text-primary">
             Habitus
           </span>
-          <span className="h-2.5 w-2.5 rounded-full bg-accent"></span>
         </Link>
 
         {/* Navigation Links */}

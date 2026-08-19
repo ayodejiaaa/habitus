@@ -87,11 +87,9 @@ export default async function PrintInspectorPage({ params }: { params: Promise<{
       
       {/* Printable Sheet Header */}
       <div className="flex justify-between items-center border-b-2 border-[#1F7A5A] pb-4 mb-6">
-        <div className="flex items-center space-x-1.5">
+        <div className="flex items-center space-x-2">
+          <img src="/images/habitus-icon.png" alt="" className="h-8 w-8" />
           <span className="text-3xl font-black tracking-tight text-[#1F7A5A]">Habitus</span>
-          <svg className="h-3 w-3 text-[#E57A44] fill-current" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="40" />
-          </svg>
         </div>
         <div className="text-right">
           <h1 className="text-lg font-bold text-gray-800 uppercase tracking-wide">Inspection Job Sheet</h1>
