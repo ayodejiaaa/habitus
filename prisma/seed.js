@@ -101,7 +101,17 @@ async function main() {
     });
   }
 
-  // Demo accounts: created only if missing, never overwritten on re-run.
+  // Demo accounts (including a full ADMIN) use hardcoded, publicly-known
+  // passwords. They must never be created against a production database —
+  // require an explicit opt-in to run this block outside development.
+  const allowDemoUsers = process.env.NODE_ENV !== "production" || process.env.ALLOW_SEED_DEMO_USERS === "true";
+
+  if (!allowDemoUsers) {
+    console.log("Skipping demo account seeding: NODE_ENV=production and ALLOW_SEED_DEMO_USERS is not set.");
+    console.log("Seed finished successfully (services only).");
+    return;
+  }
+
   const clientPassword = await bcrypt.hash("password123", 10);
   const adminPassword = await bcrypt.hash("adminpassword123", 10);
 
