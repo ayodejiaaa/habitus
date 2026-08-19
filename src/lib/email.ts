@@ -56,10 +56,17 @@ Habitus
 Build Back Home With Confidence.
   `.trim();
 
-  // Fallback logging in local dev if no apiToken is configured
+  // Fallback logging in local dev if no apiToken is configured. The link
+  // contains a live, single-use secret token, so it's only ever printed
+  // outside production — anyone with log access could otherwise use it for
+  // account takeover before it expires.
   if (!apiToken || apiToken === "fake-key") {
-    console.warn("Zoho Zeptomail API token not configured. Reset link generated:");
-    console.log(`>>> RESET LINK: ${resetLink}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Zoho Zeptomail API token not configured. Reset link generated:");
+      console.log(`>>> RESET LINK: ${resetLink}`);
+    } else {
+      console.error("Zoho Zeptomail API token not configured. Password reset email was NOT sent.");
+    }
     return;
   }
 
@@ -165,10 +172,17 @@ Habitus
 Build Back Home With Confidence.
   `.trim();
 
-  // Fallback logging in local dev if no apiToken is configured
+  // Fallback logging in local dev if no apiToken is configured. The link
+  // contains a live, single-use secret token, so it's only ever printed
+  // outside production — anyone with log access could otherwise use it for
+  // account takeover before it expires.
   if (!apiToken || apiToken === "fake-key") {
-    console.warn("Zoho Zeptomail API token not configured. Verification link generated:");
-    console.log(`>>> VERIFICATION LINK: ${verificationLink}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Zoho Zeptomail API token not configured. Verification link generated:");
+      console.log(`>>> VERIFICATION LINK: ${verificationLink}`);
+    } else {
+      console.error("Zoho Zeptomail API token not configured. Verification email was NOT sent.");
+    }
     return;
   }
 
