@@ -2,10 +2,20 @@ import { db } from "@/lib/db";
 
 export const DEFAULT_SERVICES = [
   {
+    id: "cl-land-verification",
+    name: "Land & Property Purchase Verification",
+    slug: "land-property-purchase-verification",
+    // TODO: price is a placeholder pending business decision — see AGENTS/services discussion.
+    description: "Before you commit funds, know exactly what you're buying. We verify title and ownership documents (C of O, Governor's Consent, Deed of Assignment), check for encumbrances, mortgages, or pending litigation, confirm the physical boundaries on the ground match the survey plan, and investigate community/family (omo-onile) claims on the land.",
+    price: 350000,
+    isActive: false,
+    displayOrder: 0,
+  },
+  {
     id: "cl-verification",
-    name: "Construction Verification Inspection",
-    slug: "construction-verification-inspection",
-    description: "Independent construction verification for Africans in the diaspora. Helping you verify and build with confidence back home.",
+    name: "General Progress Inspection",
+    slug: "general-progress-inspection",
+    description: "A single independent inspection at whatever stage your project currently stands. Ideal when you want one comprehensive check-in without waiting for a specific milestone like foundation, roofing, or finishing.",
     price: 350000,
     isActive: true,
     displayOrder: 1,

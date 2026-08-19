@@ -551,7 +551,7 @@ export default function RequestInspectionDialog({ services }: RequestInspectionD
                 <div className="bg-gray-50 border border-border rounded-lg p-5 space-y-3">
                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Order Summary</h4>
                   <div className="flex justify-between items-center text-sm font-semibold">
-                    <span className="text-charcoal">{selectedService ? selectedService.name : "Construction Verification Inspection"}</span>
+                    <span className="text-charcoal">{selectedService ? selectedService.name : "General Progress Inspection"}</span>
                     <span className="text-primary text-base">₦{selectedService ? selectedService.price.toLocaleString() : "350,000"}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs text-gray-500 border-t border-gray-100 pt-2">

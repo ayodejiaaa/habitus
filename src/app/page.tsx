@@ -280,7 +280,7 @@ export default async function HomePage() {
               Inspection Services
             </h2>
             <p className="text-gray-500 text-sm sm:text-base max-w-xl mx-auto">
-              Habitus is building a comprehensive trust layer for every stage of your home-building journey. We start by verifying your project today, and eventually we'll support you through every major stage of construction.
+              Habitus is building a comprehensive trust layer for every stage of your property journey — from verifying the land before you buy, through every major stage of construction. We start by verifying your project today, and we're rolling out the rest of the journey soon.
             </p>
           </div>
 

@@ -45,7 +45,7 @@ export default async function PricingPage() {
             <span className="text-xs font-bold uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full">
               Service Catalog
             </span>
-            <h2 className="text-2xl font-black text-charcoal">Select a Stage for Verification</h2>
+            <h2 className="text-2xl font-black text-charcoal">Select a Stage in Your Property Journey</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
