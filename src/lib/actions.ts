@@ -527,9 +527,10 @@ export async function updateProfile(values: any) {
     const email = validated.data.email.toLowerCase().trim();
     const sanitizedName = sanitizeText(name);
     const sanitizedPhone = sanitizeText(phone);
+    const emailChanged = email !== session.user.email;
 
     // Check if email changed and is taken
-    if (email !== session.user.email) {
+    if (emailChanged) {
       const emailExists = await db.user.findUnique({ where: { email }, select: { id: true } });
       if (emailExists) {
         return { error: "Email address already in use." };
@@ -538,7 +539,14 @@ export async function updateProfile(values: any) {
 
     await db.user.update({
       where: { id: session.user.id },
-      data: { name: sanitizedName, email, phone: sanitizedPhone },
+      data: {
+        name: sanitizedName,
+        email,
+        phone: sanitizedPhone,
+        // A verified badge on the old address doesn't prove ownership of a
+        // new one — require re-verification whenever the email changes.
+        ...(emailChanged ? { emailVerified: null } : {}),
+      },
       select: { id: true },
     });
 
@@ -550,8 +558,24 @@ export async function updateProfile(values: any) {
       }
     });
 
+    if (emailChanged) {
+      try {
+        const token = await generateVerificationToken(session.user.id);
+        const appUrl = process.env.APP_URL || "http://localhost:3000";
+        const verificationLink = `${appUrl}/verify-email/${token}`;
+        await sendEmailVerificationEmail(email, verificationLink);
+        logSecurity("VERIFICATION_EMAIL_SENT", { userId: session.user.id, email });
+      } catch (emailError) {
+        console.error("Profile email changed but verification email delivery failed:", emailError);
+      }
+    }
+
     revalidatePath("/dashboard/settings");
-    return { success: "Profile updated successfully!" };
+    return {
+      success: emailChanged
+        ? "Profile updated! Please check your new email address to verify it."
+        : "Profile updated successfully!",
+    };
   } catch (error) {
     console.error("Update profile error:", error);
     return { error: "Failed to update profile." };
