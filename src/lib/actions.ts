@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { auth, signOut, unstable_update } from "@/auth";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { revalidatePath } from "next/cache";
 import { 
   RegisterSchema, 
@@ -183,7 +184,10 @@ export async function createInspectionRequest(values: any) {
     }
 
     // Generate unique Paystack reference
-    const paystackReference = `hab_ref_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+    // crypto.randomBytes rather than Math.random(): the latter is not
+    // cryptographically secure and the reference is a public-facing value
+    // (query params, redirect URLs), so it shouldn't be guessable/enumerable.
+    const paystackReference = `hab_ref_${Date.now()}_${crypto.randomBytes(12).toString("hex")}`;
     const paymentEnv = process.env.PAYSTACK_ENVIRONMENT || "test";
 
     // 1. Create request record in PENDING_PAYMENT / UNPAID state
