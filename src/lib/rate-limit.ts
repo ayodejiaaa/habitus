@@ -15,11 +15,26 @@ const redis = redisUrl && redisToken
 
 /**
  * Gets the current request client's IP address.
+ *
+ * This app is deployed on Vercel, which overwrites `x-forwarded-for` at its
+ * edge and does not forward client-supplied values (see
+ * https://vercel.com/docs/headers/request-headers#x-forwarded-for) — so
+ * these headers are not attacker-controllable under normal deployment.
+ * `x-vercel-forwarded-for` is checked first since Vercel documents it as the
+ * more reliable of the two (immune to any proxy/CDN placed in front of
+ * Vercel by this project). The one exception is Vercel's Enterprise-only
+ * "Trusted Proxy" add-on, which — if ever purchased and enabled — allows a
+ * caller-supplied X-Forwarded-For to pass through; this codebase assumes
+ * that feature is not enabled.
  */
 export async function getClientIp(): Promise<string> {
   try {
     const headerList = await headers();
-    return headerList.get("x-forwarded-for")?.split(",")[0] || headerList.get("x-real-ip") || "127.0.0.1";
+    const candidate =
+      headerList.get("x-vercel-forwarded-for") ||
+      headerList.get("x-forwarded-for") ||
+      headerList.get("x-real-ip");
+    return candidate?.split(",")[0]?.trim() || "127.0.0.1";
   } catch {
     return "127.0.0.1";
   }
