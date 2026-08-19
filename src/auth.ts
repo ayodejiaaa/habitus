@@ -11,8 +11,15 @@ const mockAuth = async () => {
   return globalMockUser ? { user: globalMockUser } : null;
 };
 
-const authResult = process.env.MOCK_AUTH === "true"
-  ? { 
+// MOCK_AUTH must never be honored in production: it swaps the entire
+// credentials/lockout/rate-limit stack for a stub that trusts an in-process
+// global, which would grant instant, fully-privileged, unauthenticated
+// sessions if this flag were ever set on a production deploy (e.g. copied
+// from a shared CI/test env file).
+const mockAuthEnabled = process.env.MOCK_AUTH === "true" && process.env.NODE_ENV !== "production";
+
+const authResult = mockAuthEnabled
+  ? {
       handlers: { GET: async () => {}, POST: async () => {} } as any, 
       auth: mockAuth as any, 
       signIn: async () => {}, 
