@@ -121,6 +121,10 @@ export async function createInspectionRequest(values: any) {
       return { error: "You must be logged in to request an inspection." };
     }
 
+    if (!(session.user as any).emailVerified) {
+      return { error: "Please verify your email address before booking an inspection. Check your inbox for the verification link, or request a new one from the verification page." };
+    }
+
     const validated = InspectionRequestSchema.safeParse(values);
     if (!validated.success) {
       return { error: "Invalid form input." };
