@@ -10,7 +10,8 @@ import {
   ChangePasswordSchema, 
   InspectionRequestSchema, 
   InspectionReportSchema,
-  NotificationPreferencesSchema
+  NotificationPreferencesSchema,
+  ContactFormSchema
 } from "./schemas";
 import { RequestStatus } from "@prisma/client";
 
@@ -810,16 +811,16 @@ export async function resendVerificationEmail() {
 /**
  * Submit contact form
  */
-export async function submitContactForm(values: { 
-  firstName: string; 
-  lastName: string; 
-  email: string; 
-  whatsapp?: string; 
-  message: string; 
-}) {
+export async function submitContactForm(values: any) {
   try {
+    const validated = ContactFormSchema.safeParse(values);
+    if (!validated.success) {
+      return { error: "Please check your details. Some fields are invalid or missing." };
+    }
+    const data = validated.data;
+
     const ip = await getClientIp();
-    
+
     // Rate limit: 5 submissions per hour per IP
     const limitCheck = await rateLimit({
       action: "contact-form",
@@ -827,33 +828,37 @@ export async function submitContactForm(values: {
       limit: 5,
       window: "1h",
     });
-    
+
     if (!limitCheck.success) {
       logSecurity("RATE_LIMIT_EXCEEDED", {
         ip,
-        email: values.email,
+        email: data.email,
         reason: "Contact form rate limit exceeded",
       });
       return { error: limitCheck.error || "Too many attempts detected. Please wait a few minutes and try again." };
     }
 
-    const sanitizedFirstName = sanitizeText(values.firstName);
-    const sanitizedLastName = sanitizeText(values.lastName);
-    const sanitizedWhatsapp = values.whatsapp ? sanitizeText(values.whatsapp) : undefined;
-    const sanitizedMessage = sanitizeMultilineText(values.message);
+    const sanitizedFirstName = sanitizeText(data.firstName);
+    const sanitizedLastName = sanitizeText(data.lastName);
+    const sanitizedWhatsapp = data.whatsapp ? sanitizeText(data.whatsapp) : undefined;
+    const sanitizedMessage = sanitizeMultilineText(data.message);
+    // Unlike the other fields, sanitizeText both strips tags and HTML-escapes
+    // the result, so an escaped address is still safe to read/reply to by
+    // eye — it just can't inject markup into the outbound HTML email body.
+    const sanitizedEmail = sanitizeText(data.email.toLowerCase().trim());
 
     // Call the Zoho Zeptomail sender
     await sendContactFormEmail({
       firstName: sanitizedFirstName,
       lastName: sanitizedLastName,
-      email: values.email.toLowerCase().trim(),
+      email: sanitizedEmail,
       whatsapp: sanitizedWhatsapp,
       message: sanitizedMessage,
     });
 
     // Log the security event for audit tracking
     logSecurity("EVIDENCE_SUBMITTED", {
-      email: values.email,
+      email: data.email,
       ip,
       reason: `Contact message submitted by ${sanitizedFirstName} ${sanitizedLastName}`,
     });

@@ -72,3 +72,12 @@ export const NotificationPreferencesSchema = z.object({
   emailAuditReports: z.boolean(),
   statusChangeAlerts: z.boolean(),
 });
+
+// Contact Form Schema
+export const ContactFormSchema = z.object({
+  firstName: z.string().min(1, "First name is required").max(100),
+  lastName: z.string().min(1, "Last name is required").max(100),
+  email: z.string().email("Invalid email address").max(254),
+  whatsapp: z.string().max(30).optional(),
+  message: z.string().min(1, "Message is required").max(5000),
+});
