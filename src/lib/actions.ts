@@ -131,6 +131,14 @@ export async function createInspectionRequest(values: any) {
       return { error: "Invalid form input." };
     }
 
+    // Launch-phase restriction: the UI only offers Lagos, Nigeria, but the
+    // schema accepts any string of sufficient length — enforce it here too,
+    // since Server Actions are callable directly regardless of what the
+    // rendered form allowed.
+    if (validated.data.city !== "Lagos" || validated.data.state !== "Lagos" || validated.data.country !== "Nigeria") {
+      return { error: "We currently only support properties located in Lagos, Nigeria. More cities coming soon." };
+    }
+
     const userId = session.user.id;
     // Rate Limiting: Max 10 requests per day per user
     const limitCheck = await rateLimit({
@@ -150,10 +158,13 @@ export async function createInspectionRequest(values: any) {
     const data = validated.data;
     const service = await db.inspectionService.findUnique({
       where: { id: data.serviceId },
-      select: { price: true },
+      select: { price: true, isActive: true },
     });
     if (!service) {
       return { error: "Selected inspection type does not exist." };
+    }
+    if (!service.isActive) {
+      return { error: "This inspection type is not yet available for booking." };
     }
 
     const sanitizedProjectName = sanitizeText(data.projectName);
