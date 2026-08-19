@@ -6,19 +6,14 @@ import { z } from "zod";
 import { rateLimit, isAccountLocked, incrementFailedLoginAttempts, resetFailedLoginAttempts, getClientIp } from "./rate-limit";
 import { generateResetToken, hashToken, logSecurity } from "./security";
 import { sendPasswordResetEmail } from "./email";
-import { LoginSchema } from "./schemas";
+import { LoginSchema, PasswordSchema } from "./schemas";
 
 const ResetPasswordRequestSchema = z.object({
   email: z.string().email("Invalid email address"),
 });
 
 const NewPasswordSchema = z.object({
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Password must contain at least 1 uppercase letter")
-    .regex(/[a-z]/, "Password must contain at least 1 lowercase letter")
-    .regex(/[0-9]/, "Password must contain at least 1 number"),
+  password: PasswordSchema,
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",

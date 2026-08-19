@@ -1,11 +1,20 @@
 import { z } from "zod";
 
+// Shared strength policy for any *new* password (registration, change, reset).
+// Single source of truth so these can't drift out of sync with each other again.
+export const PasswordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Z]/, "Password must contain at least 1 uppercase letter")
+  .regex(/[a-z]/, "Password must contain at least 1 lowercase letter")
+  .regex(/[0-9]/, "Password must contain at least 1 number");
+
 // User Auth Schemas
 export const RegisterSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   phone: z.string().min(5, "Phone number is required"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: PasswordSchema,
 });
 
 export const LoginSchema = z.object({
@@ -21,8 +30,8 @@ export const UpdateProfileSchema = z.object({
 
 export const ChangePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(6, "New password must be at least 6 characters"),
-  confirmPassword: z.string().min(6, "Confirm password must be at least 6 characters"),
+  newPassword: PasswordSchema,
+  confirmPassword: z.string(),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
